@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-web-archiver",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"description": "Ensure you'll never loose the web contents you've captured by automatically storing them in a web archiving service like Archive.org, ArchiveBox, etc.",
 	"main": "main.js",
 	"scripts": {

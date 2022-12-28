@@ -2,11 +2,11 @@ import WebArchiver from "./main";
 import { PluginSettingTab, Setting, App } from "obsidian";
 
 export interface WebArchiverSettings {
-	archivedLinkTest: string;
+	archivedLinkText: string;
 }
 
 export const DEFAULT_SETTINGS: WebArchiverSettings = {
-	archivedLinkTest: '(📁)'
+	archivedLinkText: '(📁)'
 }
 
 export class WebArchiverSettingsTab extends PluginSettingTab {
@@ -27,9 +27,9 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .setDesc("Text displayed to represent the archived version of a web URL")
       .addText((text) =>
         text
-          .setValue(this.plugin.settings.archivedLinkTest)
+          .setValue(this.plugin.settings.archivedLinkText)
           .onChange(async (value) => {
-            this.plugin.settings.archivedLinkTest = value;
+            this.plugin.settings.archivedLinkText = value;
             await this.plugin.saveSettings();
           })
       );
