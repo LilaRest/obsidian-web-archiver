@@ -25,9 +25,9 @@ export default class WebArchiver extends Plugin {
 		// Initialize the settings tab
 		this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
 
-		// Set all "requested" status as "pasted"
+		// Set all "requested" and "error" status as "queued"
 		for (const [url, urlObject] of Object.entries(this.database.urls)) {
-			if (urlObject.status === ArchivingStatus.Requested) this.database.urls[url].status = ArchivingStatus.Queued;
+			if ([ArchivingStatus.Requested, ArchivingStatus.Error].contains(urlObject.status)) this.setUrlStatus(url, ArchivingStatus.Queued);
 		}
 
 		// Listen on every paste event
@@ -38,7 +38,7 @@ export default class WebArchiver extends Plugin {
 					// Retrieve pasted text
 					const pastedText = evt.clipboardData.getData("text/plain");
 
-					// If the pasted text is an URL start archiving process
+					// If the pasted text is an URL, send it to archiving queue
 					if (urlRegex.test(pastedText)) {
 						await this.archiveUrl(pastedText, editor)
 					}
@@ -58,7 +58,7 @@ export default class WebArchiver extends Plugin {
 				errorCode: 0
 			}
 			this.database.urls[url] = pastedUrl;
-			this.writeData();
+			await this.writeData();
 		}
 		
 		// Build the archive URL
@@ -102,7 +102,7 @@ export default class WebArchiver extends Plugin {
 						this.setUrlStatus(url, ArchivingStatus.Requested);
 						request({ url: saveUrl })
 							// If the request is successful, set the pasted URL status to "archived"
-							.then((response) => this.setUrlStatus(url, ArchivingStatus.Archived))
+							.then(() => this.setUrlStatus(url, ArchivingStatus.Archived))
 							
 							// Else if an error is returned, store that one, notice, and abort the process.
 							.catch(e => {
@@ -113,7 +113,7 @@ export default class WebArchiver extends Plugin {
 					}
 				})
 			}
-		this.notice("📁 Web Archiver: Archiving process successfuly initiated. The archived content may take several minutes to be available.", "📁 Web Archiver: Initiated.", "📁 : ✅");
+		this.notice("📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.", "📁 Web Archiver: Queued.", "📁 : ✅");
 	}
 
 	notice(normalMessage: string, minimalMessage: string, iconsOnlyMessage: string) {
@@ -125,7 +125,7 @@ export default class WebArchiver extends Plugin {
 	async setUrlStatus(pastedUrl: string, status: ArchivingStatus, errorCode?: number) {
 		this.database.urls[pastedUrl].status = status;
 		this.database.urls[pastedUrl].errorCode = errorCode ? errorCode : 0;
-		this.writeData();
+		await this.writeData();
 	}
 	
 	async readData() {

@@ -93,18 +93,18 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             this.display();
           })
       });
-    
+      
     // Notices styles explanation
     const availableStyles = containerEl.createEl("ul");
     const NormalPoint = availableStyles.createEl("li")
     NormalPoint.createEl("strong", { text: "Normal : " })
     NormalPoint.createEl("span", {text: "detailed notice messages, e.g." })
-    NormalPoint.createEl("div", { text: '📁 Web Archiver: Archiving process successfuly initiated. The archived content may take several minutes to be available.', cls: ["settings-notice-message", "notice"]})
+    NormalPoint.createEl("div", { text: "📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.", cls: ["settings-notice-message", "notice"]})
     
     const MinimalPoint = availableStyles.createEl("li")
     MinimalPoint.createEl("strong", { text: "Minimal : " })
     MinimalPoint.createEl("span", { text: "minimalist notice messages, e.g." })
-    MinimalPoint.createEl("div", { text: '📁 Web Archiver: Initiated.', cls: ["settings-notice-message", "notice"]})
+    MinimalPoint.createEl("div", { text: "📁 Web Archiver: Queued.", cls: ["settings-notice-message", "notice"]})
     
     const NoTextPoint = availableStyles.createEl("li")
     NoTextPoint.createEl("strong", { text: "Icons only : " })
