@@ -1,6 +1,7 @@
 /*
 TODO:
-- Add "Archive all vault's URLs" command
+- Add "Parse whole vault and archive all unarchived URLs" command
+- Add URL shorteners support for archived links (Cutt.ly, Kutt, Bit.ly)
 */
 
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
@@ -28,6 +29,8 @@ export default class WebArchiver extends Plugin {
 		this.registerEvent(this.app.workspace.on('editor-paste',
 			async function (evt: ClipboardEvent, editor: Editor) {
 				if (evt.clipboardData) {
+
+					// Retrieve pasted text
 					const pastedText = evt.clipboardData.getData("text/plain");
 
 					// If the pasted text is an URL start archiving process
@@ -50,8 +53,10 @@ export default class WebArchiver extends Plugin {
 						else if (this.settings.archivingProvider === 2) archiveUrl = "https://archivebox.custom.domain/archive/";
 						archiveUrl += pastedText;
 
+						// Append the archived URL next to the pasted URL
+						editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
 
-						// Check if the URL requires archiving or is already archived.
+						// Check if the URL requires archiving
 						let requiresArchiving = false;
 						if (this.database[pastedText].status !== "archived") {
 							try {
@@ -71,6 +76,13 @@ export default class WebArchiver extends Plugin {
 									new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
 									return;
 								}
+							}
+
+							// Set the URL as "archived" if it doesn't require archiving but doesn't already have an "archived" status
+							if (!requiresArchiving && this.database[pastedText].status !== "archived") {
+								this.database[pastedText].status = "archived";
+								this.database[pastedText].errorCode = 0;
+								this.writeData();
 							}
 						}
 
@@ -105,17 +117,8 @@ export default class WebArchiver extends Plugin {
 								return;
 							}
 						}
-						else if (this.database[pastedText].status !== "archived") {
-							this.database[pastedText].status = "archived";
-							this.database[pastedText].errorCode = 0;
-							this.writeData();
-						}
 					}
 				}
-
-
-			// Append the archived URL next to the pasted URL
-			editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
 		}.bind(this)));
 
 		// Print console message
