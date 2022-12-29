@@ -39,7 +39,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.archivedLinkText)
           .onChange(async (value) => {
             this.plugin.settings.archivedLinkText = value;
-            await this.plugin.saveSettings();
+            await this.plugin.writeData();
           })
       );
     
@@ -59,7 +59,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.archivingProvider.toString())
 					.onChange(async (value) => {
 						this.plugin.settings.archivingProvider = +value;
-						await this.plugin.saveSettings();
+						await this.plugin.writeData();
 						this.display();
 				})
 			});

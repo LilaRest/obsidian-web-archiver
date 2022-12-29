@@ -6,18 +6,22 @@ TODO:
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { Plugin, Editor, Notice, request } from 'obsidian';
 import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab } from "./settings";
+import { PastedUrl, WebArchiverDatabase } from "./database";
+import { urlRegex } from './constants';
 
-const urlRegex = /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/
 
 export default class WebArchiver extends Plugin {
 	settings: WebArchiverSettings;
+	database: WebArchiverDatabase;
 
 	async onload() {
     // Print console message
 		console.log(`Loading "Web Archiver 📁" plugin...`);
 
+		// Read data from the JSON file
+		this.readData();
+
 		// Initialize the settings tab
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
 
 		// Listen on every paste event
@@ -26,28 +30,47 @@ export default class WebArchiver extends Plugin {
 				if (evt.clipboardData) {
 					const pastedText = evt.clipboardData.getData("text/plain");
 
-					// If the pasted text is an URL perform archiving
+					// If the pasted text is an URL start archiving process
 					if (urlRegex.test(pastedText)) {
+
+						// If the URL is not already in the database, store it
+						if (!(pastedText in this.database)) {
+							const pastedUrl: PastedUrl = {
+								status: "pasted",
+								errorCode: 0
+							}
+							this.database[pastedText] = pastedUrl;
+							this.writeData();
+						}
 						
-						// Build the archived URL
-						let archivedUrl = "";
-						if (this.settings.archivingProvider === 0) archivedUrl = "https://web.archive.org/web/";
-						else if (this.settings.archivingProvider === 1) archivedUrl = "https://archive.ph/";
-						else if (this.settings.archivingProvider === 2) archivedUrl = "https://archivebox.custom.domain/archive/";
-						archivedUrl += pastedText;
+						// Build the archive URL
+						let archiveUrl = "";
+						if (this.settings.archivingProvider === 0) archiveUrl = "https://web.archive.org/web/";
+						else if (this.settings.archivingProvider === 1) archiveUrl = "https://archive.ph/";
+						else if (this.settings.archivingProvider === 2) archiveUrl = "https://archivebox.custom.domain/archive/";
+						archiveUrl += pastedText;
+
 
 						// Check if the URL requires archiving or is already archived.
 						let requiresArchiving = false;
-						try {
-							await request({ url: archivedUrl });
-						}
-						catch (e) {
-							if (e.status === 404) {
-								requiresArchiving = true;
+						if (this.database[pastedText].status !== "archived") {
+							try {
+								await request({ url: archiveUrl });
 							}
-							else {
-								new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Please ensure the archiving provider is joinable.`);
-								return;
+							catch (e) {
+								// If a 404 error is returned, set archiving as required
+								if (e.status === 404) {
+									requiresArchiving = true;
+								}
+								// On any other error, store that one and abort the process 
+								else {
+									this.database[pastedText].status = "error";
+									this.database[pastedText].errorCode = e.status;
+									this.writeData();
+			
+									new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
+									return;
+								}
 							}
 						}
 
@@ -63,28 +86,52 @@ export default class WebArchiver extends Plugin {
 
 							// Request archiving
 							try {
+								// Mark the archiving as requested
+								this.database[pastedText].status = "requested";
+								this.database[pastedText].errorCode = 0;
+								this.writeData();
+								
+								new Notice(`📁 Web Archiver: Archiving request sent. The content may take some time to be available.`);
+								
 								await request({ url: saveUrl });
 							}
 							catch (e) {
-								new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Please ensure the archiving provider is joinable.`);
+								// If an error is returned, store, notice it and abort the process.
+								this.database[pastedText].status = "error";
+								this.database[pastedText].errorCode = e.status;
+								this.writeData();
+								
+								new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
 								return;
 							}
-								
-							new Notice(`📁 Web Archiver: Archiving request sent. The content may take some time to be available.`);
 						}
-
-						// Append the archived URL next to the pasted URL
-						editor.replaceRange(` [${this.settings.archivedLinkText}](${archivedUrl})`, editor.getCursor());
+						else if (this.database[pastedText].status !== "archived") {
+							this.database[pastedText].status = "archived";
+							this.database[pastedText].errorCode = 0;
+							this.writeData();
+						}
 					}
 				}
+
+
+			// Append the archived URL next to the pasted URL
+			editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
 		}.bind(this)));
+
+		// Print console message
+		console.log(`"Web Archiver 📁" successfully loaded.`);
 	}
 	
-	async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	async readData() {
+		const data = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});
+		this.database = data.database ? data.database : {};
   }
 
-  async saveSettings() {
-    await this.saveData(this.settings);
+  async writeData() {
+		await this.saveData({
+			settings: this.settings,
+			database: this.database
+		});
 	}
 }
