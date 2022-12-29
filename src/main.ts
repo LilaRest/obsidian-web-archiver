@@ -74,7 +74,7 @@ export default class WebArchiver extends Plugin {
 									// If the error code !== 404, store that one, notice, and abort the process 
 									if (e.status !== 404) {
 										this.setUrlStatus(pastedText, "error", e.status);
-										new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
+										this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 										return;
 									}
 									
@@ -97,19 +97,25 @@ export default class WebArchiver extends Plugin {
 											// Else if an error is returned, store that one, notice, and abort the process.
 											.catch(e => {
 												this.setUrlStatus(pastedText, "error", e.status);
-												new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
+												this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 												return;
 											})
 									}
 								})
-							new Notice(`📁 Web Archiver: Archiving process successfuly initiated. The archived content may take several minutes to be available.`);
-						}
+							}
+						this.notice("📁 Web Archiver: Archiving process successfuly initiated. The archived content may take several minutes to be available.", "📁 Web Archiver: Initiated.", "📁 : ✅");
 					}
 				}
 		}.bind(this)));
 
 		// Print console message
 		console.log(`"Web Archiver 📁" successfully loaded.`);
+	}
+
+	notice(normalMessage: string, minimalMessage: string, iconsOnlyMessage: string) {
+		if (this.settings.noticesStyle === 0) new Notice(normalMessage);
+		else if (this.settings.noticesStyle === 1) new Notice(minimalMessage);
+		else if (this.settings.noticesStyle === 2) new Notice(iconsOnlyMessage);
 	}
 	
 	async setUrlStatus(pastedUrl: string, status: ArchivingStatus, errorCode?: number) {

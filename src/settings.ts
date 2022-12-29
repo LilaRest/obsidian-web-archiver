@@ -10,6 +10,7 @@ export const enum ArchivingProviders {
 export const enum NoticesStyles {
   Normal,
   Minimal,
+  IconsOnly,
   Hidden
 }
 
@@ -77,12 +78,13 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     // Notices style
     new Setting(containerEl)
       .setName('Notices style')
-      .setDesc('The plugin will display notice to inform you about the states of the archiving processes. With this dropdown you can impact how those notices are displayed')
+      .setDesc('The plugin will display notice messages to inform you about the states of the archiving processes. With this dropdown you can choose how those notices will be displayed')
       .addDropdown((dropdown) => {
         const options: Record<NoticesStyles, string> = {
           0: "Normal",
           1: "Minimal",
-          2: "Hidden"
+          2: "Icons only",
+          3: "Hidden"
         };
         dropdown
           .addOptions(options)
@@ -96,18 +98,23 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     
     // Notices styles explanation
     const availableStyles = containerEl.createEl("ul");
-    availableStyles.createEl("li", { text: 'Normal: Long format message, e.g.'})
-
-    // Support section's title
-    containerEl.createEl("h2", { text: "Support ❤️" });
-
-    // Support message
-    containerEl.createEl("p", { text: "That plugin is provided for free for everyone under the MIT license. If it has been helpful to you, please thank me by :" })
-    const supportMethods = containerEl.createEl("ul");
-    supportMethods.createEl("li", { text: "Following me on Github " }).createEl("a", { href: "https://github.com/LilaRest", text: "@LilaRest"})
-    supportMethods.createEl("li", { text: "Giving a like to that plugin " }).createEl("a", { href: "https://github.com/LilaRest/obsidian-web-archiver", text: "LilaRest/obsidian-web-archiver" })
-    supportMethods.createEl("li", { text: "Following me on Twitter " }).createEl("a", { href: "https://twitter.com/LilaRest", text: "@LilaRest"})
+    const NormalPoint = availableStyles.createEl("li")
+    NormalPoint.createEl("strong", { text: "Normal : " })
+    NormalPoint.createEl("span", {text: "detailed notice messages, e.g." })
+    NormalPoint.createEl("div", { text: '📁 Web Archiver: Archiving process successfuly initiated. The archived content may take several minutes to be available.', cls: ["settings-notice-message", "notice"]})
     
-    // and give a like to the plugin repo(https://aaa.fr)")
+    const MinimalPoint = availableStyles.createEl("li")
+    MinimalPoint.createEl("strong", { text: "Minimal : " })
+    MinimalPoint.createEl("span", { text: "minimalist notice messages, e.g." })
+    MinimalPoint.createEl("div", { text: '📁 Web Archiver: Initiated.', cls: ["settings-notice-message", "notice"]})
+    
+    const NoTextPoint = availableStyles.createEl("li")
+    NoTextPoint.createEl("strong", { text: "Icons only : " })
+    NoTextPoint.createEl("span", {text: "only icons used in notice messages, e.g." })
+    NoTextPoint.createEl("div", { text: '📁 : ✅', cls: ["settings-notice-message", "notice"]})
+    
+    const HiddenPoint = availableStyles.createEl("li")
+    HiddenPoint.createEl("strong", { text: "Hidden : " })
+    HiddenPoint.createEl("span", {text: "no notice messages" })
   }
 }
