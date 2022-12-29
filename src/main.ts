@@ -27,7 +27,7 @@ export default class WebArchiver extends Plugin {
 
 		// Set all "requested" status as "pasted"
 		for (const [url, urlObject] of Object.entries(this.database.urls)) {
-			if (urlObject.status === ArchivingStatus.Requested) this.database.urls[url].status = ArchivingStatus.Pasted;
+			if (urlObject.status === ArchivingStatus.Requested) this.database.urls[url].status = ArchivingStatus.Queued;
 		}
 
 		// Listen on every paste event
@@ -54,7 +54,7 @@ export default class WebArchiver extends Plugin {
 		// If the URL is not already in the database, store it
 		if (!(url in this.database.urls)) {
 			const pastedUrl: PastedUrl = {
-				status: ArchivingStatus.Pasted,
+				status: ArchivingStatus.Queued,
 				errorCode: 0
 			}
 			this.database.urls[url] = pastedUrl;

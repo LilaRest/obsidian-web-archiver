@@ -1,5 +1,5 @@
 export enum ArchivingStatus {
-  Pasted,
+  Queued,
   Requested,
   Error,
   Archived
