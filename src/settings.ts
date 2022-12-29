@@ -1,12 +1,20 @@
 import WebArchiver from "./main";
 import { PluginSettingTab, Setting, App } from "obsidian";
 
+export const enum ArchivingProviders {
+	InternetArchive,
+  ArchiveIs,
+  ArchiveBox
+}
+
 export interface WebArchiverSettings {
-	archivedLinkText: string;
+  archivedLinkText: string;
+  archivingProvider: ArchivingProviders;
 }
 
 export const DEFAULT_SETTINGS: WebArchiverSettings = {
-	archivedLinkText: '(📁)'
+  archivedLinkText: '(📁)',
+  archivingProvider: ArchivingProviders.InternetArchive
 }
 
 export class WebArchiverSettingsTab extends PluginSettingTab {
@@ -22,6 +30,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
 
     containerEl.empty();
 
+    // Archived URL's text
     new Setting(containerEl)
       .setName("Archived URL's text")
       .setDesc("Text displayed to represent the archived version of a web URL")
@@ -33,5 +42,26 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+    
+    // 
+    new Setting(containerEl)
+			.setName('Web archiving provider')
+			.setDesc('Tells the plugin which web archiving provider it must use.')
+			.addDropdown((dropdown) => {
+				const options: Record<ArchivingProviders, string> = {
+					0: "Internet Archive (archive.org)",
+					1: "ArchiveToday (archive.today / archive.is / archive.ph)",
+					2: "ArchiveBox"
+				};
+
+				dropdown
+					.addOptions(options)
+					.setValue(this.plugin.settings.archivingProvider.toString())
+					.onChange(async (value) => {
+						this.plugin.settings.archivingProvider = +value;
+						await this.plugin.saveSettings();
+						this.display();
+				})
+			});
   }
 }
