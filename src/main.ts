@@ -6,7 +6,7 @@ TODO:
 
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { Plugin, Editor, Notice, request } from 'obsidian';
-import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab } from "./settings";
+import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab, ArchivingProviders } from "./settings";
 import { PastedUrl, WebArchiverDatabase, ArchivingStatus, DEFAULT_DATABASE } from "./database";
 import { urlRegex } from './constants';
 
@@ -63,8 +63,8 @@ export default class WebArchiver extends Plugin {
 		
 		// Build the archive URL
 		let archiveUrl = "";
-		if (this.settings.archivingProvider === 0) archiveUrl = "https://web.archive.org/web/";
-		else if (this.settings.archivingProvider === 1) archiveUrl = "https://archivebox.custom.domain/archive/";
+		if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) archiveUrl = "https://web.archive.org/web/";
+		/* else if (this.settings.archivingProvider === ArchivingProviders.ArchiveBox) archiveUrl = "https://archive.ph/"; */
 		archiveUrl += url;
 
 		// Append the archived URL next to the pasted URL
@@ -81,6 +81,7 @@ export default class WebArchiver extends Plugin {
 
 				// Else, continue archiving process
 				.catch(e => {
+					console.log(e);
 
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
@@ -95,7 +96,7 @@ export default class WebArchiver extends Plugin {
 						// Build the save URL
 						let saveUrl = "";
 						if (this.settings.archivingProvider === 0) saveUrl = "https://web.archive.org/save/";
-						else if (this.settings.archivingProvider === 1) saveUrl = "https://archivebox.custom.domain/archive/";
+						/* else if (this.settings.archivingProvider === 1) saveUrl = "https://archive.ph/?run=1&url="; */
 						saveUrl += url;
 
 						// Send the archiving request
@@ -106,6 +107,7 @@ export default class WebArchiver extends Plugin {
 							
 							// Else if an error is returned, store that one, notice, and abort the process.
 							.catch(e => {
+								console.log(e);
 								this.setUrlStatus(url, ArchivingStatus.Error, e.status);
 								this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 								return;

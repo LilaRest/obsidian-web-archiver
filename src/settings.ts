@@ -3,7 +3,7 @@ import { PluginSettingTab, Setting, App } from "obsidian";
 
 export const enum ArchivingProviders {
 	InternetArchive,
-  ArchiveBox
+  // ArchiveBox
 }
 
 export const enum NoticesStyles {
@@ -14,13 +14,13 @@ export const enum NoticesStyles {
 }
 
 export interface WebArchiverSettings {
-  archivedLinkText: string;
   archivingProvider: ArchivingProviders;
+  archivedLinkText: string;
   noticesStyle: NoticesStyles;
 }
 
 export const DEFAULT_SETTINGS: WebArchiverSettings = {
-  archivedLinkText: '(📁)',
+  archivedLinkText: "(📁)",
   archivingProvider: ArchivingProviders.InternetArchive,
   noticesStyle: NoticesStyles.Normal
 }
@@ -39,7 +39,29 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     // Settings' section title
-    containerEl.createEl("h2", { text: "Settings" });
+    containerEl.createEl("h2", { text: "Settings", cls: "settings-header" });
+    
+    // Web archiving provider
+    new Setting(containerEl)
+      .setName('Web archiving provider')
+      .setDesc('Tells the plugin which web archiving provider it must use.')
+      .addDropdown((dropdown) => {
+        const options: Record<ArchivingProviders, string> = {
+          0: "Internet Archive (archive.org)",
+          // 1: "ArchiveBox"
+        };
+        dropdown
+          .addOptions(options)
+          .setValue(this.plugin.settings.archivingProvider.toString())
+          .onChange(async (value) => {
+            this.plugin.settings.archivingProvider = +value;
+            await this.plugin.writeData();
+            this.display();
+          })
+      });
+    
+    // Settings' section title
+    containerEl.createEl("h2", { text: "Appearance", cls: "settings-header" });
     
     // Archived URL's text
     new Setting(containerEl)
@@ -53,26 +75,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             await this.plugin.writeData();
           })
       );
-    
-    // Web archiving provider
-    new Setting(containerEl)
-      .setName('Web archiving provider')
-      .setDesc('Tells the plugin which web archiving provider it must use.')
-      .addDropdown((dropdown) => {
-        const options: Record<ArchivingProviders, string> = {
-          0: "Internet Archive (archive.org)",
-          1: "ArchiveBox"
-        };
-        dropdown
-          .addOptions(options)
-          .setValue(this.plugin.settings.archivingProvider.toString())
-          .onChange(async (value) => {
-            this.plugin.settings.archivingProvider = +value;
-            await this.plugin.writeData();
-            this.display();
-          })
-      });
-    
+
     // Notices style
     new Setting(containerEl)
       .setName('Notices style')
