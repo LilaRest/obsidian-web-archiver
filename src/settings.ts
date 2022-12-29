@@ -3,7 +3,6 @@ import { PluginSettingTab, Setting, App } from "obsidian";
 
 export const enum ArchivingProviders {
 	InternetArchive,
-  ArchiveIs,
   ArchiveBox
 }
 
@@ -62,8 +61,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .addDropdown((dropdown) => {
         const options: Record<ArchivingProviders, string> = {
           0: "Internet Archive (archive.org)",
-          1: "ArchiveToday (archive.today / archive.is / archive.ph)",
-          2: "ArchiveBox"
+          1: "ArchiveBox"
         };
         dropdown
           .addOptions(options)
