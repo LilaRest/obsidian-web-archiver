@@ -7,7 +7,7 @@ TODO:
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { Plugin, Editor, Notice, request } from 'obsidian';
 import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab } from "./settings";
-import { PastedUrl, WebArchiverDatabase } from "./database";
+import { PastedUrl, WebArchiverDatabase, ArchivingStatus, DEFAULT_DATABASE } from "./database";
 import { urlRegex } from './constants';
 
 
@@ -37,12 +37,12 @@ export default class WebArchiver extends Plugin {
 					if (urlRegex.test(pastedText)) {
 
 						// If the URL is not already in the database, store it
-						if (!(pastedText in this.database)) {
+						if (!(pastedText in this.database.urls)) {
 							const pastedUrl: PastedUrl = {
-								status: "pasted",
+								status: ArchivingStatus.Pasted,
 								errorCode: 0
 							}
-							this.database[pastedText] = pastedUrl;
+							this.database.urls[pastedText] = pastedUrl;
 							this.writeData();
 						}
 						
@@ -56,66 +56,53 @@ export default class WebArchiver extends Plugin {
 						// Append the archived URL next to the pasted URL
 						editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
 
-						// Check if the URL requires archiving
+						// Start the archiving process
 						let requiresArchiving = false;
-						if (this.database[pastedText].status !== "archived") {
-							try {
-								await request({ url: archiveUrl });
-							}
-							catch (e) {
-								// If a 404 error is returned, set archiving as required
-								if (e.status === 404) {
-									requiresArchiving = true;
-								}
-								// On any other error, store that one and abort the process 
-								else {
-									this.database[pastedText].status = "error";
-									this.database[pastedText].errorCode = e.status;
-									this.writeData();
-			
-									new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
-									return;
-								}
-							}
+						if (this.database.urls[pastedText].status !== "archived") {
 
-							// Set the URL as "archived" if it doesn't require archiving but doesn't already have an "archived" status
-							if (!requiresArchiving && this.database[pastedText].status !== "archived") {
-								this.database[pastedText].status = "archived";
-								this.database[pastedText].errorCode = 0;
-								this.writeData();
-							}
-						}
-
-						// Archive the URL if required
-						if (requiresArchiving) {
-
-							// Build the save URL
-							let saveUrl = "";
-							if (this.settings.archivingProvider === 0) saveUrl = "https://web.archive.org/save/";
-							else if (this.settings.archivingProvider === 1) saveUrl = "https://archive.ph/submit/?url=";
-							else if (this.settings.archivingProvider === 2) saveUrl = "https://archivebox.custom.domain/archive/";
-							saveUrl += pastedText;
-
-							// Request archiving
-							try {
-								// Mark the archiving as requested
-								this.database[pastedText].status = "requested";
-								this.database[pastedText].errorCode = 0;
-								this.writeData();
+							// Check if the URL is already archived
+							request({ url: archiveUrl })
 								
-								new Notice(`📁 Web Archiver: Archiving request sent. The content may take some time to be available.`);
-								
-								await request({ url: saveUrl });
-							}
-							catch (e) {
-								// If an error is returned, store, notice it and abort the process.
-								this.database[pastedText].status = "error";
-								this.database[pastedText].errorCode = e.status;
-								this.writeData();
-								
-								new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
-								return;
-							}
+								// If it is, set its status to "archived"
+								.then(() => {
+									this.setUrlStatus(pastedText, "archived");
+								})
+
+								// Else, continue archiving process
+								.catch(e => {
+
+									// If the error code !== 404, store that one, notice, and abort the process 
+									if (e.status !== 404) {
+										this.setUrlStatus(pastedText, "error", e.status);
+										new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
+										return;
+									}
+									
+									// Else request for archiving the pasted URL
+									else {
+
+										// Build the save URL
+										let saveUrl = "";
+										if (this.settings.archivingProvider === 0) saveUrl = "https://web.archive.org/save/";
+										else if (this.settings.archivingProvider === 1) saveUrl = "https://archive.ph/submit/?url=";
+										else if (this.settings.archivingProvider === 2) saveUrl = "https://archivebox.custom.domain/archive/";
+										saveUrl += pastedText;
+
+										// Send the archiving request
+										this.setUrlStatus(pastedText, "requested");
+										request({ url: saveUrl })
+											// If the request is successful, set the pasted URL status to "archived"
+											.then(() => this.setUrlStatus(pastedText, "archived"))
+											
+											// Else if an error is returned, store that one, notice, and abort the process.
+											.catch(e => {
+												this.setUrlStatus(pastedText, "error", e.status);
+												new Notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`);
+												return;
+											})
+									}
+								})
+							new Notice(`📁 Web Archiver: Archiving process successfuly initiated. The archived content may take several minutes to be available.`);
 						}
 					}
 				}
@@ -125,10 +112,17 @@ export default class WebArchiver extends Plugin {
 		console.log(`"Web Archiver 📁" successfully loaded.`);
 	}
 	
+	async setUrlStatus(pastedUrl: string, status: ArchivingStatus, errorCode?: number) {
+		this.database.urls[pastedUrl].status = status;
+		this.database.urls[pastedUrl].errorCode = errorCode ? errorCode : 0;
+		this.writeData();
+	}
+	
 	async readData() {
 		const data = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});
-		this.database = data.database ? data.database : {};
+		this.database = Object.assign({}, DEFAULT_DATABASE, data.database ? data.database : {});
+		
   }
 
   async writeData() {
