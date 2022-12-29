@@ -64,7 +64,7 @@ export default class WebArchiver extends Plugin {
 		// Build the archive URL
 		let archiveUrl = "";
 		if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) archiveUrl = "https://web.archive.org/web/";
-		/* else if (this.settings.archivingProvider === ArchivingProviders.ArchiveBox) archiveUrl = "https://archive.ph/"; */
+		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) archiveUrl = "https://archive.ph/";
 		archiveUrl += url;
 
 		// Append the archived URL next to the pasted URL
@@ -77,12 +77,13 @@ export default class WebArchiver extends Plugin {
 			request({ url: archiveUrl })
 				
 				// If it is, set its status to "archived"
-				.then(() => this.setUrlStatus(url, ArchivingStatus.Archived))
+				.then(response => {
+					if (response.contains("No results")) throw { status: 404 }; // Support ArchiveToday which doesn't throw a 404 if the archive doesn't exist, but instead display a code 200 page with "No results" text displayed.
+					this.setUrlStatus(url, ArchivingStatus.Archived)
+				})
 
 				// Else, continue archiving process
 				.catch(e => {
-					console.log(e);
-
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
 						this.setUrlStatus(url, ArchivingStatus.Error, e.status);
@@ -95,15 +96,14 @@ export default class WebArchiver extends Plugin {
 
 						// Build the save URL
 						let saveUrl = "";
-						if (this.settings.archivingProvider === 0) saveUrl = "https://web.archive.org/save/";
-						/* else if (this.settings.archivingProvider === 1) saveUrl = "https://archive.ph/?run=1&url="; */
+						if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) saveUrl = "https://web.archive.org/save/";
+						else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) saveUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=";
 						saveUrl += url;
 
 						// Send the archiving request
-						this.setUrlStatus(url, ArchivingStatus.Requested);
-						request({ url: saveUrl })
+						request(saveUrl)
 							// If the request is successful, set the pasted URL status to "archived"
-							.then(() => this.setUrlStatus(url, ArchivingStatus.Archived))
+							.then(res => { console.log(res); this.setUrlStatus(url, ArchivingStatus.Archived) })
 							
 							// Else if an error is returned, store that one, notice, and abort the process.
 							.catch(e => {
@@ -112,6 +112,8 @@ export default class WebArchiver extends Plugin {
 								this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 								return;
 							})
+						this.setUrlStatus(url, ArchivingStatus.Requested);
+
 					}
 				})
 			}
