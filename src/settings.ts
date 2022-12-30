@@ -52,7 +52,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     containerEl.createEl("h2", { text: "Archive file", cls: "settings-header" });
     const archiveFileSectionDesc = containerEl.createEl("div", {cls: "settings-section-description"});
     setIcon(archiveFileSectionDesc.createSpan(), "info")
-    archiveFileSectionDesc.createSpan({ text: "The Web Archiver plugin stores all the archive URLs into a single big archive file. This section allows to define where that file must be stored." })
+    archiveFileSectionDesc.createSpan({ text: "In order to provide clutter-free archive links, the Web Archiver plugin stores all the archive URLs into a single big archive file. This section allows you to configure where that file must be stored." })
 
     // Archive file: Parent folder
     new Setting(containerEl)
@@ -88,9 +88,9 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
 
     containerEl.createDiv({ cls: ["settings-preview", "settings-archive-file-path-preview"] }).innerHTML = `
       <h3>Preview</h3>
-      <p>
-        Your archive file is actually stored at:  <span class="dynamic"></span>
-      </p>
+      <main>
+        <span>Your archive file is actually stored at : &nbsp; <span class="dynamic"></span></span>
+      </main>
     `;
     
     const dynamicEl = containerEl.querySelector(".settings-archive-file-path-preview span.dynamic");
@@ -103,6 +103,9 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     updateFilePathPreview.call(this)
      
     containerEl.createEl("h2", { text: "Providers", cls: "settings-header" });
+    const providersSectionDesc = containerEl.createEl("div", {cls: "settings-section-description"});
+    setIcon(providersSectionDesc.createSpan(), "info")
+    providersSectionDesc.createSpan({ text: "The Web Archiver plugin send every URL you paste in your vault to a web archiving service provider. This section allows you to define to which providers the Web Archiver must send your pasted URLs." })
     
     // Web archiving provider
     new Setting(containerEl)
