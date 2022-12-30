@@ -11,7 +11,7 @@ TODO:
 
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { Plugin, Editor, Notice, request, moment } from 'obsidian';
-import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab, ArchivingProviders } from "./settings";
+import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab } from "./settings";
 import { PastedUrl, WebArchiverDatabase, ArchivingStatus, DEFAULT_DATABASE } from "./database";
 import { urlRegex } from './constants';
 
@@ -68,9 +68,9 @@ export default class WebArchiver extends Plugin {
 		
 		// Build the archive URL
 		let archiveUrl = "";
-		if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) archiveUrl = `https://web.archive.org/web/${moment().format("YYYYMMDDHHmm")}/${url}`;
-		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) archiveUrl = `https://archive.ph/${moment().format("YYYYMMDDHHmm")}/${url}`;
-		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveBox) archiveUrl = `https://${this.settings.archiveBoxFqdn}/archive/${moment.now()}/${url}`;
+		if (this.settings.useInternetArchive) archiveUrl = `https://web.archive.org/web/${moment().format("YYYYMMDDHHmm")}/${url}`;
+		else if (this.settings.useArchiveToday) archiveUrl = `https://archive.ph/${moment().format("YYYYMMDDHHmm")}/${url}`;
+		else if (this.settings.useArchiveBox) archiveUrl = `https://${this.settings.archiveBoxFqdn}/archive/${moment.now()}/${url}`;
 
 		// Append the archived URL next to the pasted URL
 		editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
@@ -102,12 +102,12 @@ export default class WebArchiver extends Plugin {
 						let sentRequest;
 
 						// If the archiving provider is Internet Archive or Archive.today -> use a GET request
-						if ([ArchivingProviders.InternetArchive, ArchivingProviders.ArchiveToday].contains(this.settings.archivingProvider)) {
+						if (this.settings.useInternetArchive || this.settings.useArchiveToday) {
 
 							// Build the save URL
 							let saveUrl = "";
-							if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) saveUrl = "https://web.archive.org/save/";
-							else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) saveUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=";
+							if (this.settings.useInternetArchive) saveUrl = "https://web.archive.org/save/";
+							else if (this.settings.useArchiveToday) saveUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=";
 							saveUrl += url;
 	
 							// Send the archiving request
@@ -115,7 +115,7 @@ export default class WebArchiver extends Plugin {
 						}
 
 						// Else if the archiving provider is an ArchiveBox instance -> use a POST request
-						else if (this.settings.archivingProvider === ArchivingProviders.ArchiveBox) {
+						else if (this.settings.useArchiveBox) {
 							sentRequest = request({
 								"url": "https://archive.vuethers.org/add/",
 								"method": "POST",

@@ -64,6 +64,8 @@ div.settings-preview h3 {
   align-items: center;
   margin: 0;
   color: var(--color-accent);
+  /* letter-spacing: 0.5px; */
+  /* font-weight: 900; */
 }
 
 body.theme-dark div.settings-preview h3 {

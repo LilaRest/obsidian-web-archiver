@@ -2,12 +2,6 @@ import WebArchiver from "./main";
 import { PluginSettingTab, Setting, App, setIcon } from "obsidian";
 import { FolderSuggest } from "./suggesters/FolderSuggester";
 
-export const enum ArchivingProviders {
-	InternetArchive,
-  ArchiveToday,
-  ArchiveBox
-}
-
 export const enum NoticesStyles {
   Normal,
   Minimal,
@@ -19,7 +13,9 @@ export interface WebArchiverSettings {
   archiveFileParentFolder: string;
   archiveFileName: string;
   archiveFilePath: string;
-  archivingProvider: ArchivingProviders;
+  useInternetArchive: boolean;
+  useArchiveToday: boolean;
+  useArchiveBox: boolean;
   archiveBoxFqdn: string;
   archivedLinkText: string;
   noticesStyle: NoticesStyles;
@@ -28,8 +24,10 @@ export interface WebArchiverSettings {
 export const DEFAULT_SETTINGS: WebArchiverSettings = {
   archiveFileParentFolder: "/",
   archiveFileName: "WebArchiver",
-  archiveFilePath: "/WebArchiver",
-  archivingProvider: ArchivingProviders.InternetArchive,
+  archiveFilePath: "/WebArchiver.md",
+  useInternetArchive: true,
+  useArchiveToday: false,
+  useArchiveBox: false,
   archiveBoxFqdn: "",
   archivedLinkText: "(📁)",
   noticesStyle: NoticesStyles.Normal
@@ -48,13 +46,13 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    // Settings' section title
+    // Archive file section
     containerEl.createEl("h2", { text: "Archive file", cls: "settings-header" });
     const archiveFileSectionDesc = containerEl.createEl("div", {cls: "settings-section-description"});
     setIcon(archiveFileSectionDesc.createSpan(), "info")
     archiveFileSectionDesc.createSpan({ text: "In order to provide clutter-free archive links, the Web Archiver plugin stores all the archive URLs into a single big archive file. This section allows you to configure where that file must be stored." })
 
-    // Archive file: Parent folder
+    // * Archive file: Parent folder
     new Setting(containerEl)
       .setName("Archive file > Parent folder")
       .setDesc("Defines the folder in which is stored the archive file.")
@@ -71,7 +69,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           cb.containerEl.addClass("templater_search");
       });
     
-    // Archive file: Name
+    // * Archive file: Name
     new Setting(containerEl)
         .setName("Archive file > Name")
         .setDesc("Defines the name of the archive file. If it doesn't exist it will be created automatically.")
@@ -86,6 +84,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             })
       )
 
+    // * Archive file: Path + Path preview
     containerEl.createDiv({ cls: ["settings-preview", "settings-archive-file-path-preview"] }).innerHTML = `
       <h3>Preview</h3>
       <main>
@@ -94,10 +93,16 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     `;
     
     const dynamicEl = containerEl.querySelector(".settings-archive-file-path-preview span.dynamic");
+    let lastTimeout = setTimeout(() => 0, 1);
     function updateFilePathPreview() {
       if (dynamicEl) {
-        const archiveFilePath = this.plugin.settings.archiveFileParentFolder + (this.plugin.settings.archiveFileParentFolder.slice(-1) === "/" ? "" : "/") +  this.plugin.settings.archiveFileName + (this.plugin.settings.archiveFileName.slice(-3) === ".md" ? "" : ".md")
-        dynamicEl.innerHTML = archiveFilePath;
+        if (lastTimeout) clearTimeout(lastTimeout);
+        lastTimeout = setTimeout(function () {
+          const archiveFilePath = this.plugin.settings.archiveFileParentFolder + (this.plugin.settings.archiveFileParentFolder.slice(-1) === "/" ? "" : "/") + this.plugin.settings.archiveFileName + (this.plugin.settings.archiveFileName.slice(-3) === ".md" ? "" : ".md")
+          dynamicEl.innerHTML = archiveFilePath;
+          this.plugin.settings.archiveFilePath = archiveFilePath;
+          this.plugin.writeData();
+        }.bind(this), 200);
       }
     }
     updateFilePathPreview.call(this)
@@ -107,28 +112,43 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     setIcon(providersSectionDesc.createSpan(), "info")
     providersSectionDesc.createSpan({ text: "The Web Archiver plugin send every URL you paste in your vault to a web archiving service provider. This section allows you to define to which providers the Web Archiver must send your pasted URLs." })
     
-    // Web archiving provider
+    // Web archiving providers
     new Setting(containerEl)
-      .setName('Enabled providers')
-      .setDesc('Tells the plugin which web archiving provider it must use.')
-      .addDropdown((dropdown) => {
-        const options: Record<ArchivingProviders, string> = {
-          0: "Internet Archive (archive.org)",
-          1: "Archive Today (archive.ph)",
-          2: "ArchiveBox (self-hosted)"
-        };
-        dropdown
-          .addOptions(options)
-          .setValue(this.plugin.settings.archivingProvider.toString())
+      .setName('Use Internet Archive (archive.org) ?')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.useInternetArchive)
           .onChange(async (value) => {
-            this.plugin.settings.archivingProvider = +value;
+            this.plugin.settings.useInternetArchive = value;
             await this.plugin.writeData();
-            this.display();
           })
-      });
+      })
     
+    new Setting(containerEl)
+      .setName('Use Archive.today (archive.ph) ?')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.useArchiveToday)
+          .onChange(async (value) => {
+            this.plugin.settings.useArchiveToday = value;
+            await this.plugin.writeData();
+          })
+      })
+    
+    new Setting(containerEl)
+      .setName('Use ArchiveBox (self-hosted) ?')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.useArchiveBox)
+          .onChange(async (value) => {
+            this.plugin.settings.useArchiveBox = value;
+            await this.plugin.writeData();
+            this.display()
+          })
+      })
+      
     // ArchiveBox specific settings
-    if (this.plugin.settings.archivingProvider === ArchivingProviders.ArchiveBox) {
+    if (this.plugin.settings.useArchiveBox) {
 
       // ArchiveBox server domain
       new Setting(containerEl)
