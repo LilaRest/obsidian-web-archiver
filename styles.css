@@ -7,7 +7,7 @@ h2.settings-header {
   font-size: 18px;
   margin-left: -10px;
   font-weight: 900;
-  margin-top: 50px;
+  margin-top: 60px;
 }
 
 div.settings-section-description {
@@ -100,11 +100,18 @@ div.settings-preview main {
   font-size: 16px;
 }
 
+div.settings-archive-file-path-preview main div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
 
 div.settings-archive-file-path-preview span.dynamic {
   font-weight: 900;
   font-size: 16px;
   display: inline-block;
+  margin-top: 12px;
 }
 
 div.settings-notice-preview main {

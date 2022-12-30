@@ -88,7 +88,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     containerEl.createDiv({ cls: ["settings-preview", "settings-archive-file-path-preview"] }).innerHTML = `
       <h3>Preview</h3>
       <main>
-        <span>Your archive file is actually stored at : &nbsp; <span class="dynamic"></span></span>
+        <div>Your archive file is actually stored at : &nbsp; <span class="dynamic"></span></div>
       </main>
     `;
     
@@ -115,7 +115,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     
     // * Providers list
     new Setting(containerEl)
-      .setName('Use Internet Archive (archive.org) ?')
+      .setName('Providers > Use Internet Archive (archive.org) ?')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.useInternetArchive)
@@ -126,7 +126,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       })
     
     new Setting(containerEl)
-      .setName('Use Archive.today (archive.ph) ?')
+      .setName('Providers > Use Archive.today (archive.ph) ?')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.useArchiveToday)
@@ -137,7 +137,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       })
     
     new Setting(containerEl)
-      .setName('Use ArchiveBox (self-hosted) ?')
+      .setName('Providers > Use ArchiveBox (self-hosted) ?')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.useArchiveBox)
@@ -153,7 +153,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
 
       // ArchiveBox server domain
       new Setting(containerEl)
-        .setName("ArchiveBox server's domain")
+        .setName("Providers > ArchiveBox > Server's domain")
         .setDesc("The FQDN of your self-hosted instance of ArchiveBox")
         .addText((text) =>
           text
@@ -176,7 +176,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     
     // * Apperance Archived URL's text
     new Setting(containerEl)
-      .setName("Appearance: Archive URLs' text")
+      .setName("Appearance > Archive URLs' text")
       .setDesc("Text displayed to represent the archived version of a web URL")
       .addText((text) =>
         text
@@ -189,7 +189,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
 
     // * Notices style
     new Setting(containerEl)
-      .setName('Appearance Notices style')
+      .setName('Appearance > Notice messages style')
       .setDesc('The plugin will display notice messages to inform you about the states of the archiving processes. With this dropdown you can choose how those notices will be displayed')
       .addDropdown((dropdown) => {
         const options: Record<NoticesStyles, string> = {
