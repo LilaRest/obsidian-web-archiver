@@ -3,7 +3,8 @@ import { PluginSettingTab, Setting, App } from "obsidian";
 
 export const enum ArchivingProviders {
 	InternetArchive,
-  ArchiveToday
+  ArchiveToday,
+  ArchiveBox
 }
 
 export const enum NoticesStyles {
@@ -15,13 +16,15 @@ export const enum NoticesStyles {
 
 export interface WebArchiverSettings {
   archivingProvider: ArchivingProviders;
+  archiveBoxFqdn: string;
   archivedLinkText: string;
   noticesStyle: NoticesStyles;
 }
 
 export const DEFAULT_SETTINGS: WebArchiverSettings = {
-  archivedLinkText: "(📁)",
   archivingProvider: ArchivingProviders.InternetArchive,
+  archiveBoxFqdn: "",
+  archivedLinkText: "(📁)",
   noticesStyle: NoticesStyles.Normal
 }
 
@@ -48,7 +51,8 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .addDropdown((dropdown) => {
         const options: Record<ArchivingProviders, string> = {
           0: "Internet Archive (archive.org)",
-          1: "Archive Today (archive.ph)"
+          1: "Archive Today (archive.ph)",
+          2: "ArchiveBox (self-hosted)"
         };
         dropdown
           .addOptions(options)
@@ -59,6 +63,24 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             this.display();
           })
       });
+    
+    // ArchiveBox specific settings
+    if (this.plugin.settings.archivingProvider === ArchivingProviders.ArchiveBox) {
+
+      // ArchiveBox server domain
+      new Setting(containerEl)
+        .setName("ArchiveBox server's domain")
+        .setDesc("The FQDN of your self-hosted instance of ArchiveBox")
+        .addText((text) =>
+          text
+            .setPlaceholder("archive.mydomain.com")
+            .setValue(this.plugin.settings.archiveBoxFqdn)
+            .onChange(async (value) => {
+              this.plugin.settings.archiveBoxFqdn = value;
+              await this.plugin.writeData();
+            })
+        );
+    }
     
     // Settings' section title
     containerEl.createEl("h2", { text: "Appearance", cls: "settings-header" });

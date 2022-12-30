@@ -2,6 +2,11 @@
 TODO:
 - Add "Parse whole vault and archive all unarchived URLs" command
 - Add URL shorteners support for archived links (Cutt.ly, Kutt, Bit.ly)
+- Write the README.md
+- Submit the plugins to the Obsidian's plugins list
+- Set up CI/CD of releases with the Semantic Bot
+- Store pasting datetime in data to allow reviewing later
+- Store startus per archiving provider and allow multiple archiving providers
 */
 
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
@@ -63,9 +68,9 @@ export default class WebArchiver extends Plugin {
 		
 		// Build the archive URL
 		let archiveUrl = "";
-		if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) archiveUrl = "https://web.archive.org/web/";
-		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) archiveUrl = "https://archive.ph/";
-		archiveUrl += moment().format("YYYYMMDDHHmm") + "/" + url;
+		if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) archiveUrl = `https://web.archive.org/web/${moment().format("YYYYMMDDHHmm")}/${url}`;
+		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) archiveUrl = `https://archive.ph/${moment().format("YYYYMMDDHHmm")}/${url}`;
+		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveBox) archiveUrl = `https://${this.settings.archiveBoxFqdn}/archive/${moment.now()}/${url}`;
 
 		// Append the archived URL next to the pasted URL
 		editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
@@ -94,14 +99,36 @@ export default class WebArchiver extends Plugin {
 					// Else request for archiving the pasted URL
 					else {
 
-						// Build the save URL
-						let saveUrl = "";
-						if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) saveUrl = "https://web.archive.org/save/";
-						else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) saveUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=";
-						saveUrl += url;
+						let sentRequest;
 
-						// Send the archiving request
-						request(saveUrl)
+						// If the archiving provider is Internet Archive or Archive.today -> use a GET request
+						if ([ArchivingProviders.InternetArchive, ArchivingProviders.ArchiveToday].contains(this.settings.archivingProvider)) {
+
+							// Build the save URL
+							let saveUrl = "";
+							if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) saveUrl = "https://web.archive.org/save/";
+							else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) saveUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=";
+							saveUrl += url;
+	
+							// Send the archiving request
+							sentRequest = request(saveUrl);								
+						}
+
+						// Else if the archiving provider is an ArchiveBox instance -> use a POST request
+						else if (this.settings.archivingProvider === ArchivingProviders.ArchiveBox) {
+							sentRequest = request({
+								"url": "https://archive.vuethers.org/add/",
+								"method": "POST",
+								"headers": {
+									"Content-Type": "application/x-www-form-urlencoded",
+								},
+								"body": `url=${url}&parser=auto&tag=&depth=0`,
+							})
+						}
+
+						// If a request has successful been sent
+						if (sentRequest) {
+							sentRequest
 							// If the request is successful, set the pasted URL status to "archived"
 							.then(res => { console.log(res); this.setUrlStatus(url, ArchivingStatus.Archived) })
 							
@@ -112,8 +139,10 @@ export default class WebArchiver extends Plugin {
 								this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 								return;
 							})
-						this.setUrlStatus(url, ArchivingStatus.Requested);
-
+	
+							// Set the url archiving as "requested"
+							this.setUrlStatus(url, ArchivingStatus.Requested);
+						}
 					}
 				})
 			}
