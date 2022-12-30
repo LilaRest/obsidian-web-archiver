@@ -5,7 +5,7 @@ TODO:
 */
 
 // import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
-import { Plugin, Editor, Notice, request } from 'obsidian';
+import { Plugin, Editor, Notice, request, moment } from 'obsidian';
 import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab, ArchivingProviders } from "./settings";
 import { PastedUrl, WebArchiverDatabase, ArchivingStatus, DEFAULT_DATABASE } from "./database";
 import { urlRegex } from './constants';
@@ -65,7 +65,7 @@ export default class WebArchiver extends Plugin {
 		let archiveUrl = "";
 		if (this.settings.archivingProvider === ArchivingProviders.InternetArchive) archiveUrl = "https://web.archive.org/web/";
 		else if (this.settings.archivingProvider === ArchivingProviders.ArchiveToday) archiveUrl = "https://archive.ph/";
-		archiveUrl += url;
+		archiveUrl += moment().format("YYYYMMDDHHmm") + "/" + url;
 
 		// Append the archived URL next to the pasted URL
 		editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
