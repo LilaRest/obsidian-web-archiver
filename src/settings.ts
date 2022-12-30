@@ -106,13 +106,14 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       }
     }
     updateFilePathPreview.call(this)
-     
+    
+    // Providers section
     containerEl.createEl("h2", { text: "Providers", cls: "settings-header" });
     const providersSectionDesc = containerEl.createEl("div", {cls: "settings-section-description"});
     setIcon(providersSectionDesc.createSpan(), "info")
     providersSectionDesc.createSpan({ text: "The Web Archiver plugin send every URL you paste in your vault to a web archiving service provider. This section allows you to define to which providers the Web Archiver must send your pasted URLs." })
     
-    // Web archiving providers
+    // * Providers list
     new Setting(containerEl)
       .setName('Use Internet Archive (archive.org) ?')
       .addToggle((toggle) => {
@@ -147,7 +148,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           })
       })
       
-    // ArchiveBox specific settings
+    // * ArchiveBox specific settings
     if (this.plugin.settings.useArchiveBox) {
 
       // ArchiveBox server domain
@@ -165,12 +166,17 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         );
     }
 
-    // Settings' section title
+    // Appearance section
     containerEl.createEl("h2", { text: "Appearance", cls: "settings-header" });
+
+    // * Apperance description
+    const appearanceSectionDesc = containerEl.createEl("div", {cls: "settings-section-description"});
+    setIcon(appearanceSectionDesc.createSpan(), "info")
+    appearanceSectionDesc.createSpan({ text: "The Web Archiver plugin will insert archive link automatically and will notify you about archiving process through notice messages. This section allows you to configure how those elements will look like." })
     
-    // Archived URL's text
+    // * Apperance Archived URL's text
     new Setting(containerEl)
-      .setName("Archive URLs' text")
+      .setName("Appearance: Archive URLs' text")
       .setDesc("Text displayed to represent the archived version of a web URL")
       .addText((text) =>
         text
@@ -181,9 +187,9 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           })
       );
 
-    // Notices style
+    // * Notices style
     new Setting(containerEl)
-      .setName('Notices style')
+      .setName('Appearance Notices style')
       .setDesc('The plugin will display notice messages to inform you about the states of the archiving processes. With this dropdown you can choose how those notices will be displayed')
       .addDropdown((dropdown) => {
         const options: Record<NoticesStyles, string> = {
@@ -199,29 +205,42 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             this.plugin.settings.noticesStyle = +value;
             await this.plugin.writeData();
             this.display();
+            updateNoticePreview.call(this);
           })
       });
-      
-    // Notices styles explanation
-    const availableStyles = containerEl.createEl("ul");
-    const NormalPoint = availableStyles.createEl("li")
-    NormalPoint.createEl("strong", { text: "Normal : " })
-    NormalPoint.createEl("span", {text: "detailed notice messages, e.g." })
-    NormalPoint.createEl("div", { text: "📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.", cls: ["settings-notice-message", "notice"]})
     
-    const MinimalPoint = availableStyles.createEl("li")
-    MinimalPoint.createEl("strong", { text: "Minimal : " })
-    MinimalPoint.createEl("span", { text: "minimalist notice messages, e.g." })
-    MinimalPoint.createEl("div", { text: "📁 Web Archiver: Queued.", cls: ["settings-notice-message", "notice"]})
+    // * Archive file: Path + Path preview
+    const noticePreview = containerEl.createDiv({ cls: ["settings-preview", "settings-notice-preview"] });
+    noticePreview.innerHTML = `
+      <h3>Preview</h3>
+      <main>
+        <span>Your notice messages should look like :</span>
+        <div class="dynamic notice"></div>
+      </main>
+    `;
     
-    const NoTextPoint = availableStyles.createEl("li")
-    NoTextPoint.createEl("strong", { text: "Icons only : " })
-    NoTextPoint.createEl("span", {text: "only icons used in notice messages, e.g." })
-    NoTextPoint.createEl("div", { text: '📁 : ✅', cls: ["settings-notice-message", "notice"]})
-    
-    const HiddenPoint = availableStyles.createEl("li")
-    HiddenPoint.createEl("strong", { text: "Hidden : " })
-    HiddenPoint.createEl("span", { text: "no notice messages" })
+    const noticePreviewDynamicEl = containerEl.querySelector(".settings-notice-preview div.dynamic");
+    function updateNoticePreview() {
+      if (noticePreviewDynamicEl) {
+
+        if (this.plugin.settings.noticesStyle === NoticesStyles.Normal) {
+          noticePreview.style.display = "flex";
+          noticePreviewDynamicEl.innerHTML = "📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.";
+        }
+        else if (this.plugin.settings.noticesStyle === NoticesStyles.Minimal) {
+          noticePreview.style.display = "flex";
+          noticePreviewDynamicEl.innerHTML = "📁 Web Archiver: Queued.";
+        }
+        else if (this.plugin.settings.noticesStyle === NoticesStyles.IconsOnly) {
+          noticePreview.style.display = "flex";
+          noticePreviewDynamicEl.innerHTML = "📁 : ✅";
+        }
+        else if (this.plugin.settings.noticesStyle === NoticesStyles.Hidden) {
+          noticePreview.style.display = "none";
+        }
+      }
+    }
+    updateNoticePreview.call(this)
 
     // Support section's title
     containerEl.createEl("h2", { text: "Support my work", cls: "settings-header" });

@@ -4,10 +4,10 @@ div.settings-notice-message {
 }
 
 h2.settings-header {
-  font-size: 17px;
+  font-size: 18px;
   margin-left: -10px;
   font-weight: 900;
-  margin-top: 40px;
+  margin-top: 50px;
 }
 
 div.settings-section-description {
@@ -46,6 +46,8 @@ div.settings-preview {
   display: flex;
   border-color: var(--color-accent);
   margin-top: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 div.settings-preview h3 {
@@ -82,10 +84,10 @@ div.settings-preview main {
   align-items: center;
   width: 100%;
   height: auto;
-  padding-top: 12px;
-  padding-bottom: 12px;
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  padding-left: 10px;
+  padding-right: 10px;
   text-align: center;
   font-size: 16px;
 }
@@ -97,3 +99,11 @@ div.settings-archive-file-path-preview span.dynamic {
   display: inline-block;
 }
 
+div.settings-notice-preview main {
+  flex-direction: column;
+}
+
+div.settings-notice-preview main div.notice {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
