@@ -1,5 +1,6 @@
 import WebArchiver from "./main";
-import { PluginSettingTab, Setting, App } from "obsidian";
+import { PluginSettingTab, Setting, App, setIcon } from "obsidian";
+import { FolderSuggest } from "./suggesters/FolderSuggester";
 
 export const enum ArchivingProviders {
 	InternetArchive,
@@ -15,6 +16,9 @@ export const enum NoticesStyles {
 }
 
 export interface WebArchiverSettings {
+  archiveFileParentFolder: string;
+  archiveFileName: string;
+  archiveFilePath: string;
   archivingProvider: ArchivingProviders;
   archiveBoxFqdn: string;
   archivedLinkText: string;
@@ -22,6 +26,9 @@ export interface WebArchiverSettings {
 }
 
 export const DEFAULT_SETTINGS: WebArchiverSettings = {
+  archiveFileParentFolder: "/",
+  archiveFileName: "WebArchiver",
+  archiveFilePath: "/WebArchiver",
   archivingProvider: ArchivingProviders.InternetArchive,
   archiveBoxFqdn: "",
   archivedLinkText: "(📁)",
@@ -42,11 +49,64 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     // Settings' section title
-    containerEl.createEl("h2", { text: "Settings", cls: "settings-header" });
+    containerEl.createEl("h2", { text: "Archive file", cls: "settings-header" });
+    const archiveFileSectionDesc = containerEl.createEl("div", {cls: "settings-section-description"});
+    setIcon(archiveFileSectionDesc.createSpan(), "info")
+    archiveFileSectionDesc.createSpan({ text: "The Web Archiver plugin stores all the archive URLs into a single big archive file. This section allows to define where that file must be stored." })
+
+    // Archive file: Parent folder
+    new Setting(containerEl)
+      .setName("Archive file > Parent folder")
+      .setDesc("Defines the folder in which is stored the archive file.")
+      .addSearch((cb) => {
+          new FolderSuggest(cb.inputEl);
+          cb.setPlaceholder("Example: folder1/folder2")
+              .setValue(this.plugin.settings.archiveFileParentFolder)
+              .onChange((new_folder) => {
+                this.plugin.settings.archiveFileParentFolder = new_folder;
+                this.plugin.writeData();
+                updateFilePathPreview.call(this)
+              });
+          // @ts-ignore
+          cb.containerEl.addClass("templater_search");
+      });
+    
+    // Archive file: Name
+    new Setting(containerEl)
+        .setName("Archive file > Name")
+        .setDesc("Defines the name of the archive file. If it doesn't exist it will be created automatically.")
+        .addText((text) =>
+          text
+            .setPlaceholder("WebArchiver")
+            .setValue(this.plugin.settings.archiveFileName)
+            .onChange(async (value) => {
+              this.plugin.settings.archiveFileName = value;
+              await this.plugin.writeData();
+              updateFilePathPreview.call(this)
+            })
+      )
+
+    containerEl.createDiv({ cls: ["settings-preview", "settings-archive-file-path-preview"] }).innerHTML = `
+      <h3>Preview</h3>
+      <p>
+        Your archive file is actually stored at:  <span class="dynamic"></span>
+      </p>
+    `;
+    
+    const dynamicEl = containerEl.querySelector(".settings-archive-file-path-preview span.dynamic");
+    function updateFilePathPreview() {
+      if (dynamicEl) {
+        const archiveFilePath = this.plugin.settings.archiveFileParentFolder + (this.plugin.settings.archiveFileParentFolder.slice(-1) === "/" ? "" : "/") +  this.plugin.settings.archiveFileName + (this.plugin.settings.archiveFileName.slice(-3) === ".md" ? "" : ".md")
+        dynamicEl.innerHTML = archiveFilePath;
+      }
+    }
+    updateFilePathPreview.call(this)
+     
+    containerEl.createEl("h2", { text: "Providers", cls: "settings-header" });
     
     // Web archiving provider
     new Setting(containerEl)
-      .setName('Web archiving provider')
+      .setName('Enabled providers')
       .setDesc('Tells the plugin which web archiving provider it must use.')
       .addDropdown((dropdown) => {
         const options: Record<ArchivingProviders, string> = {
@@ -81,7 +141,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             })
         );
     }
-    
+
     // Settings' section title
     containerEl.createEl("h2", { text: "Appearance", cls: "settings-header" });
     

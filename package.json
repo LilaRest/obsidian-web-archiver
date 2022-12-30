@@ -26,5 +26,8 @@
 		"commitizen": {
 			"path": "./node_modules/cz-conventional-changelog"
 		}
+	},
+	"dependencies": {
+		"@popperjs/core": "^2.11.6"
 	}
 }

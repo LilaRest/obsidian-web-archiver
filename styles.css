@@ -9,3 +9,82 @@ h2.settings-header {
   font-weight: 900;
   margin-top: 40px;
 }
+
+div.settings-section-description {
+  padding-top: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 10px;
+  margin-left: -10px;
+  border-radius: 8px;
+  /* font-style: italic; */
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  margin-top: -5px;
+}
+
+body.theme-light div.settings-section-description {
+  background-color: #f6f6f6;
+  color: #111;
+}
+
+body.theme-dark div.settings-section-description {
+  background-color: #000000;
+  color: #eee;
+}
+
+div.settings-section-description > span:first-of-type {
+  margin-right: 8px;
+}
+
+div.settings-preview {
+  background-color: #eee;
+  color: #333;
+  border-color: hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) + 15%));
+  border-width: 3px;
+  border-radius: 8px;
+  border-style: solid;
+  padding-top: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 6px;
+  transition-duration: 800ms;
+}
+
+div.settings-preview:hover {
+  border-color: var(--color-accent);
+}
+
+div.settings-preview h3 {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  justify-content: start;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  color: hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) + 15%));
+  display: inline;
+  margin-right: 30px;
+  font-weight: 900;
+  transition-duration: 800ms;
+}
+
+div.settings-preview:hover h3 {
+  color: var(--color-accent);
+}
+
+
+div.settings-archive-file-path-preview p {
+  margin-top: 7px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+div.settings-archive-file-path-preview span.dynamic {
+  font-weight: 900;
+  font-size: 14px;
+}
