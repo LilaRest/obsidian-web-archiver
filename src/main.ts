@@ -9,7 +9,6 @@ TODO:
 - Store startus per archiving provider and allow multiple archiving providers
 */
 
-// import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { Plugin, Editor, Notice, request, moment } from 'obsidian';
 import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab } from "./settings";
 import { PastedUrl, WebArchiverDatabase, ArchivingStatus, DEFAULT_DATABASE } from "./database";
@@ -18,14 +17,17 @@ import { urlRegex } from './constants';
 
 export default class WebArchiver extends Plugin {
 	settings: WebArchiverSettings;
-	database: WebArchiverDatabase;
+	database: {};
 
 	async onload() {
     // Print console message
 		console.log(`Loading "Web Archiver 📁" plugin...`);
 
-		// Read data from the JSON file
-		await this.readData();
+		// Load settings from the JSON file
+		await this.loadSettings();
+
+		// Load database from the archive file
+		await this.loadDatabase();
 
 		// Initialize the settings tab
 		this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
@@ -161,17 +163,48 @@ export default class WebArchiver extends Plugin {
 		await this.writeData();
 	}
 	
-	async readData() {
+	async loadSettings() {
 		const data = await this.loadData();
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});
-		this.database = Object.assign({}, DEFAULT_DATABASE, data.database ? data.database : {});
-		
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
   }
 
-  async writeData() {
+  async saveSettings() {
 		await this.saveData({
 			settings: this.settings,
-			database: this.database
 		});
+	}
+
+	async loadDatabase() {
+		// Get and create the archiveFile if it doesn't exist 
+		let archiveFile = await this.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
+		if (!archiveFile) archiveFile = await this.app.vault.create(this.settings.archiveFilePath, ""); 
+
+		// Convert the archive file as JSON
+		// * Match all level 2 UID headings 
+		let archiveFileContent = await this.app.vault.read(archiveFile)
+		const markdownHeadings = [...archiveFileContent.matchAll(/^## [a-zA-Z0-9]{6}/gm)]
+
+		// * Remove all line jumps
+		archiveFileContent = archiveFileContent.replaceAll("\n", "");
+
+		// * Replace markdown headings by JSON format
+		for (const matchedString of markdownHeadings) {
+			const markdownHeading = matchedString[0];
+			let newHeading = markdownHeading.replace("## ", ', "') + '": ';
+			archiveFileContent = archiveFileContent.replace(markdownHeading, newHeading);
+		}
+
+		// * Remove the two first chars
+		archiveFileContent = archiveFileContent.substring(2);
+
+		// * Surround the whole block with curly brackets
+		archiveFileContent = "{" + archiveFileContent + "}"; 
+
+		// * Parse the database as JSON and store it in memory
+		this.database = JSON.parse(archiveFileContent)
+	}
+
+	async writeDatabase () {
+		
 	}
 }
