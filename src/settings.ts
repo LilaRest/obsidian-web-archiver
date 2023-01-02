@@ -33,9 +33,9 @@ export const DEFAULT_SETTINGS: WebArchiverSettings = {
   noticesStyle: NoticesStyles.Normal
 }
 
-export 	async function loadSettings(plugin: WebArchiver) {
+export async function loadSettings(plugin: WebArchiver) {
   const data = await plugin.loadData();
-  this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
+  plugin.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
 }
 
 export async function storeSettings(plugin: WebArchiver) {
@@ -52,7 +52,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  display(): void {
+  async display(): Promise<void> {
     let { containerEl } = this;
 
     containerEl.empty();
@@ -73,7 +73,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
               .setValue(this.plugin.settings.archiveFileParentFolder)
               .onChange((new_folder) => {
                 this.plugin.settings.archiveFileParentFolder = new_folder;
-                this.plugin.writeData();
+                storeSettings(this.plugin);
                 updateFilePathPreview.call(this)
               });
           // @ts-ignore
@@ -90,8 +90,8 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             .setValue(this.plugin.settings.archiveFileName)
             .onChange(async (value) => {
               this.plugin.settings.archiveFileName = value;
-              await this.plugin.writeData();
-              updateFilePathPreview.call(this)
+              await storeSettings(this.plugin);
+              await updateFilePathPreview.call(this)
             })
       )
 
@@ -105,18 +105,18 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     
     const dynamicEl = containerEl.querySelector(".settings-archive-file-path-preview span.dynamic");
     let lastTimeout = setTimeout(() => 0, 1);
-    function updateFilePathPreview() {
+    async function updateFilePathPreview() {
       if (dynamicEl) {
         if (lastTimeout) clearTimeout(lastTimeout);
-        lastTimeout = setTimeout(function () {
+        lastTimeout = setTimeout(async function () {
           const archiveFilePath = this.plugin.settings.archiveFileParentFolder + (this.plugin.settings.archiveFileParentFolder.slice(-1) === "/" ? "" : "/") + this.plugin.settings.archiveFileName + (this.plugin.settings.archiveFileName.slice(-3) === ".md" ? "" : ".md")
           dynamicEl.innerHTML = archiveFilePath;
           this.plugin.settings.archiveFilePath = archiveFilePath;
-          this.plugin.writeData();
+          await storeSettings(this.plugin);
         }.bind(this), 200);
       }
     }
-    updateFilePathPreview.call(this)
+    await updateFilePathPreview.call(this)
     
     // Providers section
     containerEl.createEl("h2", { text: "Providers", cls: "settings-header" });
@@ -132,7 +132,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.useInternetArchive)
           .onChange(async (value) => {
             this.plugin.settings.useInternetArchive = value;
-            await this.plugin.writeData();
+            await storeSettings(this.plugin);
           })
       })
     
@@ -143,7 +143,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.useArchiveToday)
           .onChange(async (value) => {
             this.plugin.settings.useArchiveToday = value;
-            await this.plugin.writeData();
+            await storeSettings(this.plugin);
           })
       })
     
@@ -154,7 +154,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.useArchiveBox)
           .onChange(async (value) => {
             this.plugin.settings.useArchiveBox = value;
-            await this.plugin.writeData();
+            await storeSettings(this.plugin);
             this.display()
           })
       })
@@ -172,7 +172,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
             .setValue(this.plugin.settings.archiveBoxFqdn)
             .onChange(async (value) => {
               this.plugin.settings.archiveBoxFqdn = value;
-              await this.plugin.writeData();
+              await storeSettings(this.plugin);
             })
         );
     }
@@ -194,7 +194,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.archivedLinkText)
           .onChange(async (value) => {
             this.plugin.settings.archivedLinkText = value;
-            await this.plugin.writeData();
+            await storeSettings(this.plugin);
           })
       );
 
@@ -214,7 +214,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.noticesStyle.toString())
           .onChange(async (value) => {
             this.plugin.settings.noticesStyle = +value;
-            await this.plugin.writeData();
+            await storeSettings(this.plugin);
             this.display();
             updateNoticePreview.call(this);
           })

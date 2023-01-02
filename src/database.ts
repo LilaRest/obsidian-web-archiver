@@ -1,8 +1,8 @@
 import WebArchiver from "./main";
 
 export enum ArchiveStatus {
-  Queued = "queued",
-  Requested = "requesed",
+  NotStarted = "not-started",
+  Requested = "requested",
   Error = "error",
   Archived = "archived"
 }
@@ -13,9 +13,15 @@ export interface Archive {
   errCode: number
 }
 
+export const DEFAULT_ARCHIVE: Archive = {
+  archive: "not available yet",
+  status: ArchiveStatus.NotStarted,
+  errCode: 0
+}
+
 export interface ArchivedUrl {
   url: string,
-  datetime: Date,
+  datetime: string,
   internetArchive: Archive,
   archiveToday: Archive,
   archiveBox: Archive
@@ -27,7 +33,7 @@ export interface WebArchiverDatabase {
 
 export async function loadDatabase(plugin: WebArchiver) {
   // Get and create the archiveFile if it doesn't exist 
-  let archiveFile = plugin.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
+  let archiveFile = plugin.app.vault.getAbstractFileByPath(plugin.settings.archiveFilePath);
   if (!archiveFile) archiveFile = await plugin.app.vault.create(plugin.settings.archiveFilePath, ""); 
 
   // Convert the archive file as JSON
@@ -63,10 +69,9 @@ export async function storeDatabase(plugin: WebArchiver) {
     newTextContent += JSON.stringify(archivedUrl, null, 4);
     newTextContent += "\n";
   }
-  console.log(newTextContent);
  
   // Get the archiveFile object
-  let archiveFile = plugin.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
+  let archiveFile = plugin.app.vault.getAbstractFileByPath(plugin.settings.archiveFilePath);
 
   // Write the new text content
   plugin.app.vault.modify(archiveFile, newTextContent);

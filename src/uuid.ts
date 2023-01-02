@@ -1,3 +1,5 @@
+import { uuidDict } from "./constants";
+
 function genRandomInt(min: number, max: number): number {       
     // Create byte array and fill with 1 random number
     var byteArray = new Uint8Array(1);
@@ -10,11 +12,14 @@ function genRandomInt(min: number, max: number): number {
     return min + (byteArray[0] % range);
 }
 
-export function genUUID(dictionary: string): string {
+export function genUUID(existingIds: Array): string {
   let uuid = "";
-  const max = dictionary.length;
+  const max = uuidDict.length;
   for (let i = 0; i < 6; i++) {
-    uuid += dictionary[genRandomInt(0, max)];
+    uuid += uuidDict[genRandomInt(0, max)];
+  }
+  if (existingIds.contains(uuid)) {
+    return genUUID(existingIds)
   }
   return uuid;
 }
