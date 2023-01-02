@@ -1,3 +1,4 @@
+import { arch } from "os";
 import WebArchiver from "./main";
 
 export enum ArchiveStatus {
@@ -27,7 +28,7 @@ export interface ArchivedUrl {
   archiveBox: Archive
 }
 
-export interface DatabaseData {
+interface DatabaseData {
   [index: string]: ArchivedUrl;
 }
 
@@ -40,9 +41,11 @@ export class WebArchiverDatabase {
   constructor (plugin: WebArchiver) {
     this.plugin = plugin;
     this._data = {};
+  }
 
+  async init() {
     // Load data from the archive file
-    this.load();
+    await this.load();
 
     // Set all "requested" and "error" status as "not-started"
 		for (const [id, archivedUrl] of Object.entries(this._data)) {
@@ -73,7 +76,6 @@ export class WebArchiverDatabase {
 				return true;
 			}.bind(this)
 		}
-		
 		this.data = new Proxy(this._data, dataProxy);
   }
 
@@ -84,8 +86,10 @@ export class WebArchiverDatabase {
 
   async load() {
     // Get and create the archiveFile if it doesn't exist 
-    let archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.archiveFilePath);
-    if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.archiveFilePath, ""); 
+    let archiveFile = await this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
+    console.log(archiveFile)
+    console.log(archiveFile);
+    if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.get("archiveFilePath"), ""); 
 
     // Convert the archive file as JSON
     // * Match all level 2 UID headings 
@@ -115,7 +119,6 @@ export class WebArchiverDatabase {
   async store () {
     // Build nex text content
     let newTextContent = "";
-    console.log(this._data);
     for (const [id, archivedUrl] of Object.entries(this._data)) {
       newTextContent += `## ${id.toString()}\n`;
       newTextContent += JSON.stringify(archivedUrl, null, 4);
@@ -123,7 +126,7 @@ export class WebArchiverDatabase {
     }
   
     // Get the archiveFile object
-    let archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.archiveFilePath);
+    let archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
 
     // Write the new text content
     this.plugin.app.vault.modify(archiveFile, newTextContent);

@@ -9,7 +9,7 @@ TODO:
 */
 
 import { Plugin, Editor, Notice, request, moment } from "obsidian";
-import { WebArchiverSettings, WebArchiverSettingsTab, loadSettings, storeSettings } from "./settings";
+import { WebArchiverSettings, WebArchiverSettingsTab } from "./settings";
 import { WebArchiverDatabase, ArchivedUrl, ArchiveStatus, DEFAULT_ARCHIVE } from "./database";
 import { urlRegex } from "./constants";
 import { genUUID } from "./uuid" 
@@ -20,51 +20,53 @@ export default class WebArchiver extends Plugin {
 	database: WebArchiverDatabase;
 
 	async onload() {
-    // Print console message
-		console.log(`Loading "Web Archiver 📁" plugin...`);
+		this.app.workspace.onLayoutReady(async function () {
+			// Print console message
+			console.log(`Loading "Web Archiver 📁" plugin...`);
 
-		// Load settings from the data.json file
-		await loadSettings(this);
+			// Initialize the settings instance
+			this.settings = new WebArchiverSettings(this);
+			await this.settings.init();
 
-		// Initialize the settings tab
-		this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
+			// Initialize the settings tab
+			this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
 
-		// Initialize the database instance
-		this.database = new WebArchiverDatabase(this);
+			// Initialize the database instance
+			this.database = new WebArchiverDatabase(this);
+			await this.database.init();
 
+			// Listen on every paste event
+			this.registerEvent(this.app.workspace.on('editor-paste',
+				async function (evt: ClipboardEvent, editor: Editor) {
+					if (evt.clipboardData) {
 
+						// Retrieve pasted text
+						const pastedText = evt.clipboardData.getData("text/plain");
 
-		// Listen on every paste event
-		this.registerEvent(this.app.workspace.on('editor-paste',
-			async function (evt: ClipboardEvent, editor: Editor) {
-				if (evt.clipboardData) {
+						// If the pasted text is an URL, send it to archiving queue
+						if (urlRegex.test(pastedText)) {
+							evt.preventDefault();
 
-					// Retrieve pasted text
-					const pastedText = evt.clipboardData.getData("text/plain");
-
-					// If the pasted text is an URL, send it to archiving queue
-					if (urlRegex.test(pastedText)) {
-						evt.preventDefault();
-
-						// Generate archive UUID
-						const archiveUUID = genUUID(Object.keys(this.database));
+							// Generate archive UUID
+							const archiveUUID = genUUID(Object.keys(this.database));
 						
-						// Build the archive link
-						const archiveLink = `${pastedText} [${this.settings.archivedLinkText}](${this.settings.archiveFileName}#${archiveUUID})`
+							// Build the archive link
+							const archiveLink = `${pastedText} [${this.settings.get("archivedLinkText")}](${this.settings.get("archiveFileName")}#${archiveUUID})`
 
-						// Append the archive link next to the pasted URL
-						editor.replaceRange(archiveLink, editor.getCursor());
+							// Append the archive link next to the pasted URL
+							editor.replaceRange(archiveLink, editor.getCursor());
 
-						// Move the cursor next to the archive link
-						editor.setCursor(editor.getCursor().line, editor.getCursor().ch + archiveLink.length)
+							// Move the cursor next to the archive link
+							editor.setCursor(editor.getCursor().line, editor.getCursor().ch + archiveLink.length)
 						
-						await this.archiveUrl(pastedText, editor, archiveUUID);
+							await this.archiveUrl(pastedText, editor, archiveUUID);
+						}
 					}
-				}
-		}.bind(this)));
+				}.bind(this)));
 
-		// Print console message
-		console.log(`"Web Archiver 📁" successfully loaded.`);
+			// Print console message
+			console.log(`"Web Archiver 📁" successfully loaded.`);
+		}.bind(this))
 	}
 
 	async archiveUrl(url: string, editor: Editor, uuid?: string) {
@@ -84,7 +86,7 @@ export default class WebArchiver extends Plugin {
 		}
 
 		// Archive on Internet Archive
-		if (this.settings.useInternetArchive) {
+		if (this.settings.get("useInternetArchive")) {
 			if (this.database.get(archiveUUID).internetArchive.status === ArchiveStatus.NotStarted) {
 
 				// Build the archive URL
@@ -125,7 +127,6 @@ export default class WebArchiver extends Plugin {
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
 						.catch(async function (e) {
-							console.log(e);
 							this.database.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
 							this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 							return;
@@ -136,7 +137,7 @@ export default class WebArchiver extends Plugin {
 		}
 
 		// Archive on Archive.today
-		if (this.settings.useArchiveToday) {
+		if (this.settings.get("useArchiveToday")) {
 			if (this.database.get(archiveUUID).archiveToday.status === ArchiveStatus.NotStarted) {
 
 				// Build the archive URL
@@ -147,10 +148,10 @@ export default class WebArchiver extends Plugin {
 		}
 
 		// Archive on ArchiveBox instance
-		if (this.settings.useArchiveBox) {
+		if (this.settings.get("useArchiveBox")) {
 			if (this.database.get(archiveUUID).archiveBox.status === ArchiveStatus.NotStarted) {
 				// Build the archive URL
-				const archiveUrl = `https://${this.settings.archiveBoxFqdn}/archive/${moment.now()}/${url}`;
+				const archiveUrl = `https://${this.settings.get("archiveBoxFqdn")}/archive/${moment.now()}/${url}`;
 			}
 		}
 	
@@ -229,8 +230,8 @@ export default class WebArchiver extends Plugin {
 	}
 
 	notice(normalMessage: string, minimalMessage: string, iconsOnlyMessage: string) {
-		if (this.settings.noticesStyle === 0) new Notice(normalMessage);
-		else if (this.settings.noticesStyle === 1) new Notice(minimalMessage);
-		else if (this.settings.noticesStyle === 2) new Notice(iconsOnlyMessage);
+		if (this.settings.get("noticesStyle") === 0) new Notice(normalMessage);
+		else if (this.settings.get("noticesStyle") === 1) new Notice(minimalMessage);
+		else if (this.settings.get("noticesStyle") === 2) new Notice(iconsOnlyMessage);
 	}
 }

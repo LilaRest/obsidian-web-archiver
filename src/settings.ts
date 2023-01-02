@@ -9,19 +9,7 @@ export const enum NoticesStyles {
   Hidden
 }
 
-export interface WebArchiverSettings {
-  archiveFileParentFolder: string;
-  archiveFileName: string;
-  archiveFilePath: string;
-  useInternetArchive: boolean;
-  useArchiveToday: boolean;
-  useArchiveBox: boolean;
-  archiveBoxFqdn: string;
-  archivedLinkText: string;
-  noticesStyle: NoticesStyles;
-}
-
-export const DEFAULT_SETTINGS: WebArchiverSettings = {
+export const DEFAULT_SETTINGS: SettingsData = {
   archiveFileParentFolder: "/",
   archiveFileName: "WebArchiver",
   archiveFilePath: "/WebArchiver.md",
@@ -33,16 +21,73 @@ export const DEFAULT_SETTINGS: WebArchiverSettings = {
   noticesStyle: NoticesStyles.Normal
 }
 
-export async function loadSettings(plugin: WebArchiver) {
-  const data = await plugin.loadData();
-  plugin.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
+export interface SettingsData {
+  archiveFileParentFolder: string;
+  archiveFileName: string;
+  archiveFilePath: string;
+  useInternetArchive: boolean;
+  useArchiveToday: boolean;
+  useArchiveBox: boolean;
+  archiveBoxFqdn: string;
+  archivedLinkText: string;
+  noticesStyle: NoticesStyles;
 }
 
-export async function storeSettings(plugin: WebArchiver) {
-  await plugin.saveData({
-    settings: plugin.settings
-  });
+export class WebArchiverSettings {
+  plugin: WebArchiver;
+  _data: SettingsData;
+  data: SettingsData;
+  lastTimeout: any;
+
+
+  constructor (plugin: WebArchiver) {
+    this.plugin = plugin;
+    this._data = {};
+  }
+
+  async init () {
+    // Load data from the archive file
+    await this.load();
+
+    // Set up auto-save for database
+		const dataProxy = {
+			get: function (target: any, key: string): any {
+				if (typeof target[key] === "object" && target[key] !== null) {
+					if (key === "_target") return target;
+					return new Proxy(target[key], dataProxy)
+				}
+				return target[key]
+			}.bind(this),
+			set: async function (target: any, prop: string, value: any) {
+				target[prop] = value;
+				await this.store();
+				return true;
+			}.bind(this)
+		}
+		this.data = new Proxy(this._data, dataProxy);
+  }
+
+  async load() {
+    const data = await this.plugin.loadData();
+    this._data = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
+  }
+
+  async store() {
+    await this.plugin.saveData({
+      settings: this._data
+    });
+  }
+
+  get(key: string): any {
+    return this.data[key];
+  }
+
+  set(key: string, value: any) {
+    this.data[key] = value;
+  }
 }
+
+
 
 export class WebArchiverSettingsTab extends PluginSettingTab {
   plugin: WebArchiver;
@@ -70,10 +115,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .addSearch((cb) => {
           new FolderSuggest(cb.inputEl);
           cb.setPlaceholder("Example: folder1/folder2")
-              .setValue(this.plugin.settings.archiveFileParentFolder)
+              .setValue(this.plugin.settings.get("archiveFileParentFolder"))
               .onChange((new_folder) => {
-                this.plugin.settings.archiveFileParentFolder = new_folder;
-                storeSettings(this.plugin);
+                this.plugin.settings.set("archiveFileParentFolder", new_folder);
+                // storeSettings(this.plugin);
                 updateFilePathPreview.call(this)
               });
           // @ts-ignore
@@ -87,10 +132,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         .addText((text) =>
           text
             .setPlaceholder("WebArchiver")
-            .setValue(this.plugin.settings.archiveFileName)
+            .setValue(this.plugin.settings.get("archiveFileName"))
             .onChange(async (value) => {
-              this.plugin.settings.archiveFileName = value;
-              await storeSettings(this.plugin);
+              this.plugin.settings.set("archiveFileName",value);
+              // await storeSettings(this.plugin);
               await updateFilePathPreview.call(this)
             })
       )
@@ -109,10 +154,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       if (dynamicEl) {
         if (lastTimeout) clearTimeout(lastTimeout);
         lastTimeout = setTimeout(async function () {
-          const archiveFilePath = this.plugin.settings.archiveFileParentFolder + (this.plugin.settings.archiveFileParentFolder.slice(-1) === "/" ? "" : "/") + this.plugin.settings.archiveFileName + (this.plugin.settings.archiveFileName.slice(-3) === ".md" ? "" : ".md")
+          const archiveFilePath = this.plugin.settings.get("archiveFileParentFolder") + (this.plugin.settings.get("archiveFileParentFolder").slice(-1) === "/" ? "" : "/") + this.plugin.settings.get("archiveFileName") + (this.plugin.settings.get("archiveFileName").slice(-3) === ".md" ? "" : ".md")
           dynamicEl.innerHTML = archiveFilePath;
-          this.plugin.settings.archiveFilePath = archiveFilePath;
-          await storeSettings(this.plugin);
+          this.plugin.settings.set("archiveFilePath", archiveFilePath);
+          // await storeSettings(this.plugin);
         }.bind(this), 200);
       }
     }
@@ -129,10 +174,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .setName('Providers > Use Internet Archive (archive.org) ?')
       .addToggle((toggle) => {
         toggle
-          .setValue(this.plugin.settings.useInternetArchive)
+          .setValue(this.plugin.settings.get("useInternetArchive"))
           .onChange(async (value) => {
-            this.plugin.settings.useInternetArchive = value;
-            await storeSettings(this.plugin);
+            this.plugin.settings.set("useInternetArchive", value);
+            // await storeSettings(this.plugin);
           })
       })
     
@@ -140,10 +185,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .setName('Providers > Use Archive.today (archive.ph) ?')
       .addToggle((toggle) => {
         toggle
-          .setValue(this.plugin.settings.useArchiveToday)
+          .setValue(this.plugin.settings.get("useArchiveToday"))
           .onChange(async (value) => {
-            this.plugin.settings.useArchiveToday = value;
-            await storeSettings(this.plugin);
+            this.plugin.settings.set("useArchiveToday", value);
+            // await storeSettings(this.plugin);
           })
       })
     
@@ -151,16 +196,16 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .setName('Providers > Use ArchiveBox (self-hosted) ?')
       .addToggle((toggle) => {
         toggle
-          .setValue(this.plugin.settings.useArchiveBox)
+          .setValue(this.plugin.settings.get("useArchiveBox"))
           .onChange(async (value) => {
-            this.plugin.settings.useArchiveBox = value;
-            await storeSettings(this.plugin);
+            this.plugin.settings.set("useArchiveBox", value);
+            // await storeSettings(this.plugin);
             this.display()
           })
       })
       
     // * ArchiveBox specific settings
-    if (this.plugin.settings.useArchiveBox) {
+    if (this.plugin.settings.get("useArchiveBox")) {
 
       // ArchiveBox server domain
       new Setting(containerEl)
@@ -169,10 +214,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         .addText((text) =>
           text
             .setPlaceholder("archive.mydomain.com")
-            .setValue(this.plugin.settings.archiveBoxFqdn)
+            .setValue(this.plugin.settings.get("archiveBoxFqdn"))
             .onChange(async (value) => {
-              this.plugin.settings.archiveBoxFqdn = value;
-              await storeSettings(this.plugin);
+              this.plugin.settings.set("archiveBoxFqdn", value);
+              // await storeSettings(this.plugin);
             })
         );
     }
@@ -191,10 +236,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       .setDesc("Text displayed to represent the archived version of a web URL")
       .addText((text) =>
         text
-          .setValue(this.plugin.settings.archivedLinkText)
+          .setValue(this.plugin.settings.get("archivedLinkText"))
           .onChange(async (value) => {
-            this.plugin.settings.archivedLinkText = value;
-            await storeSettings(this.plugin);
+            this.plugin.settings.set("archivedLinkText",  value);
+            // await storeSettings(this.plugin);
           })
       );
 
@@ -211,10 +256,10 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         };
         dropdown
           .addOptions(options)
-          .setValue(this.plugin.settings.noticesStyle.toString())
+          .setValue(this.plugin.settings.get("noticesStyle").toString())
           .onChange(async (value) => {
-            this.plugin.settings.noticesStyle = +value;
-            await storeSettings(this.plugin);
+            this.plugin.settings.set("noticesStyle",  +value);
+            // await storeSettings(this.plugin);
             this.display();
             updateNoticePreview.call(this);
           })
@@ -234,19 +279,19 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
     function updateNoticePreview() {
       if (noticePreviewDynamicEl) {
 
-        if (this.plugin.settings.noticesStyle === NoticesStyles.Normal) {
+        if (this.plugin.settings.get("noticesStyle") === NoticesStyles.Normal) {
           noticePreview.style.display = "flex";
           noticePreviewDynamicEl.innerHTML = "📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.";
         }
-        else if (this.plugin.settings.noticesStyle === NoticesStyles.Minimal) {
+        else if (this.plugin.settings.get("noticesStyle") === NoticesStyles.Minimal) {
           noticePreview.style.display = "flex";
           noticePreviewDynamicEl.innerHTML = "📁 Web Archiver: Queued.";
         }
-        else if (this.plugin.settings.noticesStyle === NoticesStyles.IconsOnly) {
+        else if (this.plugin.settings.get("noticesStyle") === NoticesStyles.IconsOnly) {
           noticePreview.style.display = "flex";
           noticePreviewDynamicEl.innerHTML = "📁 : ✅";
         }
-        else if (this.plugin.settings.noticesStyle === NoticesStyles.Hidden) {
+        else if (this.plugin.settings.get("noticesStyle") === NoticesStyles.Hidden) {
           noticePreview.style.display = "none";
         }
       }
