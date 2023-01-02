@@ -12,7 +12,7 @@ function genRandomInt(min: number, max: number): number {
     return min + (byteArray[0] % range);
 }
 
-export function genUUID(existingIds: Array): string {
+export function genUUID(existingIds: Array<string>): string {
   let uuid = "";
   const max = uuidDict.length;
   for (let i = 0; i < 6; i++) {
