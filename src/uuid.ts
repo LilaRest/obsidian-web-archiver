@@ -14,9 +14,12 @@ function genRandomInt(min: number, max: number): number {
 
 export function genUUID(existingIds: Array<string>): string {
   let uuid = "";
-  const max = uuidDict.length;
+  const max = uuidDict.length - 1;
+  console.log(max);
   for (let i = 0; i < 6; i++) {
-    uuid += uuidDict[genRandomInt(0, max)];
+    const randomInt = genRandomInt(0, max);
+    console.log(randomInt);
+    uuid += uuidDict[randomInt];
   }
   if (existingIds.contains(uuid)) {
     return genUUID(existingIds)

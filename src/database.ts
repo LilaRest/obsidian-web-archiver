@@ -87,8 +87,6 @@ export class WebArchiverDatabase {
   async load() {
     // Get and create the archiveFile if it doesn't exist 
     let archiveFile = await this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
-    console.log(archiveFile)
-    console.log(archiveFile);
     if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.get("archiveFilePath"), ""); 
 
     // Convert the archive file as JSON
