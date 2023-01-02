@@ -143,7 +143,49 @@ export default class WebArchiver extends Plugin {
 				// Build the archive URL
 				const archiveUrl = `https://archive.ph/${moment().format("YYYYMMDDHHmm")}/${url}`;
 
+				// Check if the URL is already archived
+				request({ url: archiveUrl })
 				
+				// If it is, set its status to "archived"
+				.then(async function (res) {
+					this.database.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
+					console.log(this.database.get(archiveUUID))
+					this.database.get(archiveUUID).archiveToday.archive = archiveUrl;
+				}.bind(this))
+				
+				// Else, continue archiving process
+				.catch(async function (e) {
+					
+					// If the error code !== 404, store that one, notice, and abort the process 
+					if (e.status !== 404) {
+						this.database.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived, e.status);
+						this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						return;
+					}
+					
+					// Else request for archiving the pasted URL
+					else {
+
+						// Build the request URL
+						const requestUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=" + url;
+
+						// Send the request
+						request(requestUrl)
+
+						// If the request is successful, set the pasted URL status to "archived"
+						.then(async function (res) {
+							if (res.contains("No results")) throw { status: 404 }; // Support ArchiveToday which doesn't throw a 404 if the archive doesn't exist, but instead display a code 200 page with "No results" text displayed.
+							this.database.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
+						}.bind(this))
+					
+						// Else if an error is returned, store that one, notice, and abort the process.
+						.catch(async function (e) {
+							this.database.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
+							this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							return;
+						}.bind(this))
+					}
+				}.bind(this))
 			}
 		}
 
