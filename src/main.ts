@@ -10,7 +10,7 @@ TODO:
 
 import { Plugin, Editor, Notice, request, moment } from "obsidian";
 import { WebArchiverSettings, WebArchiverSettingsTab, loadSettings, storeSettings } from "./settings";
-import { WebArchiverDatabase, ArchivedUrl, ArchiveStatus, loadDatabase, storeDatabase, DEFAULT_ARCHIVE } from "./database";
+import { WebArchiverDatabase, ArchivedUrl, ArchiveStatus, DEFAULT_ARCHIVE } from "./database";
 import { urlRegex } from "./constants";
 import { genUUID } from "./uuid" 
 
@@ -29,22 +29,10 @@ export default class WebArchiver extends Plugin {
 		// Initialize the settings tab
 		this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
 
-		// Load database from the archive file
-		await loadDatabase(this);
+		// Initialize the database instance
+		this.database = new WebArchiverDatabase(this);
 
-		// Set all "requested" and "error" status as "queued"
-		for (const [id, archivedUrl] of Object.entries(this.database)) {
-			// Check Internet Archive's archive
-			if ([ArchiveStatus.Requested, ArchiveStatus.Error].contains(archivedUrl.internetArchive.status)) this.setUrlStatus(id, "internetArchive", ArchiveStatus.NotStarted);
 
-			// Check Archive.today's archive
-			if ([ArchiveStatus.Requested, ArchiveStatus.Error].contains(archivedUrl.archiveToday.status)) this.setUrlStatus(id, "archiveToday", ArchiveStatus.NotStarted);
-
-			// Check Archive.box's archive
-			if ([ArchiveStatus.Requested, ArchiveStatus.Error].contains(archivedUrl.archiveBox.status)) this.setUrlStatus(id, "archiveBox", ArchiveStatus.NotStarted);
-
-			await storeDatabase(this);
-		}
 
 		// Listen on every paste event
 		this.registerEvent(this.app.workspace.on('editor-paste',
@@ -86,19 +74,18 @@ export default class WebArchiver extends Plugin {
 
 		// If the URL is not already in the database, store it
 		if (!Object.keys(this.database).contains(archiveUUID)) {
-			this.database[archiveUUID] = {
+			this.database.data[archiveUUID] = {
 				url: url,
 				datetime: moment().format("YYYY-MM-DDTHH:mm:ss"),
 				internetArchive: Object.assign({}, DEFAULT_ARCHIVE),
 				archiveToday: Object.assign({}, DEFAULT_ARCHIVE),
 				archiveBox: Object.assign({}, DEFAULT_ARCHIVE)
 			}
-			await storeDatabase(this);
 		}
 
 		// Archive on Internet Archive
 		if (this.settings.useInternetArchive) {
-			if (this.database[archiveUUID].internetArchive.status === ArchiveStatus.NotStarted) {
+			if (this.database.get(archiveUUID).internetArchive.status === ArchiveStatus.NotStarted) {
 
 				// Build the archive URL
 				const archiveUrl = `https://web.archive.org/web/${moment().format("YYYYMMDDHHmm")}/${url}`;
@@ -108,9 +95,8 @@ export default class WebArchiver extends Plugin {
 				
 				// If it is, set its status to "archived"
 				.then(async function (res) {
-					this.setUrlStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived);
-					this.database[archiveUUID].internetArchive.archive = archiveUrl;
-					await storeDatabase(this);
+					this.database.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived);
+					this.database.get(archiveUUID).internetArchive.archive = archiveUrl;
 				}.bind(this))
 				
 				// Else, continue archiving process
@@ -118,8 +104,7 @@ export default class WebArchiver extends Plugin {
 					
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
-						this.setUrlStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived, e.status);
-						await storeDatabase(this);
+						this.database.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived, e.status);
 						this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 						return;
 					}
@@ -135,15 +120,13 @@ export default class WebArchiver extends Plugin {
 
 						// If the request is successful, set the pasted URL status to "archived"
 						.then(async function (res) {
-							this.setUrlStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived)
-							await storeDatabase(this.plugin);
+							this.database.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived)
 						}.bind(this))
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
 						.catch(async function (e) {
 							console.log(e);
-							this.setUrlStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
-							await storeDatabase(this.plugin);
+							this.database.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
 							this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 							return;
 						}.bind(this))
@@ -154,7 +137,7 @@ export default class WebArchiver extends Plugin {
 
 		// Archive on Archive.today
 		if (this.settings.useArchiveToday) {
-			if (this.database[archiveUUID].archiveToday.status === ArchiveStatus.NotStarted) {
+			if (this.database.get(archiveUUID).archiveToday.status === ArchiveStatus.NotStarted) {
 
 				// Build the archive URL
 				const archiveUrl = `https://archive.ph/${moment().format("YYYYMMDDHHmm")}/${url}`;
@@ -165,7 +148,7 @@ export default class WebArchiver extends Plugin {
 
 		// Archive on ArchiveBox instance
 		if (this.settings.useArchiveBox) {
-			if (this.database[archiveUUID].archiveBox.status === ArchiveStatus.NotStarted) {
+			if (this.database.get(archiveUUID).archiveBox.status === ArchiveStatus.NotStarted) {
 				// Build the archive URL
 				const archiveUrl = `https://${this.settings.archiveBoxFqdn}/archive/${moment.now()}/${url}`;
 			}
@@ -180,14 +163,14 @@ export default class WebArchiver extends Plugin {
 				// If it is, set its status to "archived"
 				.then(response => {
 					if (response.contains("No results")) throw { status: 404 }; // Support ArchiveToday which doesn't throw a 404 if the archive doesn't exist, but instead display a code 200 page with "No results" text displayed.
-					this.setUrlStatus(url, ArchiveStatus.Archived)
+					this.database.setStatus(url, ArchiveStatus.Archived)
 				})
 
 				// Else, continue archiving process
 				.catch(e => {
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
-						this.setUrlStatus(url, ArchiveStatus.Error, e.status);
+						this.database.setStatus(url, ArchiveStatus.Error, e.status);
 						this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 						return;
 					}
@@ -226,18 +209,18 @@ export default class WebArchiver extends Plugin {
 						if (sentRequest) {
 							sentRequest
 							// If the request is successful, set the pasted URL status to "archived"
-							.then(res => { console.log(res); this.setUrlStatus(url, ArchiveStatus.Archived) })
+							.then(res => { console.log(res); this.database.setStatus(url, ArchiveStatus.Archived) })
 							
 							// Else if an error is returned, store that one, notice, and abort the process.
 							.catch(e => {
 								console.log(e);
-								this.setUrlStatus(url, ArchiveStatus.Error, e.status);
+								this.database.setStatus(url, ArchiveStatus.Error, e.status);
 								this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 								return;
 							})
 	
 							// Set the url archiving as "requested"
-							this.setUrlStatus(url, ArchiveStatus.Requested);
+							this.database.setStatus(url, ArchiveStatus.Requested);
 						}
 					}
 				})
@@ -249,23 +232,5 @@ export default class WebArchiver extends Plugin {
 		if (this.settings.noticesStyle === 0) new Notice(normalMessage);
 		else if (this.settings.noticesStyle === 1) new Notice(minimalMessage);
 		else if (this.settings.noticesStyle === 2) new Notice(iconsOnlyMessage);
-	}
-	
-	setUrlStatus(archiveId: string, archiveProvider: string, status: ArchiveStatus, errorCode?: number) {
-		if (archiveProvider === "internetArchive") {
-			this.database[archiveId].internetArchive.status = status;
-			this.database[archiveId].internetArchive.errCode = status === ArchiveStatus.Error ? errorCode ? errorCode : 0 : 0;
-		}
-		else if (archiveProvider === "archiveToday") {
-			this.database[archiveId].archiveToday.status = status;
-			this.database[archiveId].archiveToday.errCode = status === ArchiveStatus.Error ? errorCode ? errorCode : 0 : 0;
-		}
-		else if (archiveProvider === "archiveBox") {
-			this.database[archiveId].archiveBox.status = status;
-			this.database[archiveId].archiveBox.errCode = status === ArchiveStatus.Error ? errorCode ? errorCode : 0 : 0;
-		}
-		else {
-			throw `Web Archiver: ERROR, setUrlStatus() called with unsuported provider "${archiveProvider}"`
-		}
 	}
 }
