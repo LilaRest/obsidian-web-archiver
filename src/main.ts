@@ -5,6 +5,7 @@ TODO:
 - Write the README.md
 - Submit the plugins to the Obsidian's plugins list
 - Set up CI/CD of releases with the Semantic Bot
+- Make the archive file read-only by listening on change event on it and preventing the action
 */
 
 import { Plugin, Editor, Notice, request, moment } from 'obsidian';

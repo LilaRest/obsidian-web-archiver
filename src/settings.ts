@@ -1,5 +1,5 @@
 import WebArchiver from "./main";
-import { PluginSettingTab, Setting, App, setIcon, Plugin } from "obsidian";
+import { PluginSettingTab, Setting, App, setIcon } from "obsidian";
 import { FolderSuggest } from "./suggesters/FolderSuggester";
 
 export const enum NoticesStyles {

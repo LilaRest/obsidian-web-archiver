@@ -26,7 +26,6 @@ export interface WebArchiverDatabase {
 }
 
 export async function loadDatabase(plugin: WebArchiver) {
-  
   // Get and create the archiveFile if it doesn't exist 
   let archiveFile = plugin.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
   if (!archiveFile) archiveFile = await plugin.app.vault.create(plugin.settings.archiveFilePath, ""); 
@@ -49,13 +48,26 @@ export async function loadDatabase(plugin: WebArchiver) {
   // * Remove the two first chars
   archiveFileContent = archiveFileContent.substring(2);
 
-  // * Surround the whole block with curly brackets
+  // * Surround the whole block with curly braces
   archiveFileContent = "{" + archiveFileContent + "}"; 
 
   // * Parse the database as JSON and store it in memory
   plugin.database = JSON.parse(archiveFileContent)
 }
 
-export async function storeDatabase (plugin: WebArchiver) {
+export async function storeDatabase(plugin: WebArchiver) {
+  // Build nex text content
+  let newTextContent = "";
+  for (const [id, archivedUrl] of Object.entries(plugin.database)) {
+    newTextContent += `## ${id.toString()}\n`;
+    newTextContent += JSON.stringify(archivedUrl, null, 4);
+    newTextContent += "\n";
+  }
+  console.log(newTextContent);
+ 
+  // Get the archiveFile object
+  let archiveFile = plugin.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
 
+  // Write the new text content
+  plugin.app.vault.modify(archiveFile, newTextContent);
 }
