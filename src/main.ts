@@ -5,36 +5,34 @@ TODO:
 - Write the README.md
 - Submit the plugins to the Obsidian's plugins list
 - Set up CI/CD of releases with the Semantic Bot
-- Store pasting datetime in data to allow reviewing later
-- Store startus per archiving provider and allow multiple archiving providers
 */
 
 import { Plugin, Editor, Notice, request, moment } from 'obsidian';
-import { WebArchiverSettings, DEFAULT_SETTINGS, WebArchiverSettingsTab } from "./settings";
-import { PastedUrl, WebArchiverDatabase, ArchivingStatus, DEFAULT_DATABASE } from "./database";
+import { WebArchiverSettings, WebArchiverSettingsTab, loadSettings, storeSettings } from "./settings";
+import { WebArchiverDatabase, ArchivedUrl, ArchiveStatus, loadDatabase, storeDatabase } from "./database";
 import { urlRegex } from './constants';
 
 
 export default class WebArchiver extends Plugin {
 	settings: WebArchiverSettings;
-	database: {};
+	database: WebArchiverDatabase;
 
 	async onload() {
     // Print console message
 		console.log(`Loading "Web Archiver 📁" plugin...`);
 
 		// Load settings from the JSON file
-		await this.loadSettings();
+		await loadSettings(this);
 
 		// Load database from the archive file
-		await this.loadDatabase();
+		await loadDatabase(this);
 
 		// Initialize the settings tab
 		this.addSettingTab(new WebArchiverSettingsTab(this.app, this))
 
 		// Set all "requested" and "error" status as "queued"
 		for (const [url, urlObject] of Object.entries(this.database.urls)) {
-			if ([ArchivingStatus.Requested, ArchivingStatus.Error].contains(urlObject.status)) this.setUrlStatus(url, ArchivingStatus.Queued);
+			if ([ArchiveStatus.Requested, ArchiveStatus.Error].contains(urlObject.status)) this.setUrlStatus(url, ArchiveStatus.Queued);
 		}
 
 		// Listen on every paste event
@@ -60,12 +58,12 @@ export default class WebArchiver extends Plugin {
 
 		// If the URL is not already in the database, store it
 		if (!(url in this.database.urls)) {
-			const pastedUrl: PastedUrl = {
-				status: ArchivingStatus.Queued,
+			const pastedUrl: ArchivedUrl = {
+				status: ArchiveStatus.Queued,
 				errorCode: 0
 			}
 			this.database.urls[url] = pastedUrl;
-			await this.writeData();
+			await storeDatabase(this);
 		}
 		
 		// Build the archive URL
@@ -78,7 +76,7 @@ export default class WebArchiver extends Plugin {
 		editor.replaceRange(` [${this.settings.archivedLinkText}](${archiveUrl})`, editor.getCursor());
 
 		// Start the archiving process
-		if (this.database.urls[url].status !== ArchivingStatus.Archived) {
+		if (this.database.urls[url].status !== ArchiveStatus.Archived) {
 
 			// Check if the URL is already archived
 			request({ url: archiveUrl })
@@ -86,14 +84,14 @@ export default class WebArchiver extends Plugin {
 				// If it is, set its status to "archived"
 				.then(response => {
 					if (response.contains("No results")) throw { status: 404 }; // Support ArchiveToday which doesn't throw a 404 if the archive doesn't exist, but instead display a code 200 page with "No results" text displayed.
-					this.setUrlStatus(url, ArchivingStatus.Archived)
+					this.setUrlStatus(url, ArchiveStatus.Archived)
 				})
 
 				// Else, continue archiving process
 				.catch(e => {
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
-						this.setUrlStatus(url, ArchivingStatus.Error, e.status);
+						this.setUrlStatus(url, ArchiveStatus.Error, e.status);
 						this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 						return;
 					}
@@ -132,18 +130,18 @@ export default class WebArchiver extends Plugin {
 						if (sentRequest) {
 							sentRequest
 							// If the request is successful, set the pasted URL status to "archived"
-							.then(res => { console.log(res); this.setUrlStatus(url, ArchivingStatus.Archived) })
+							.then(res => { console.log(res); this.setUrlStatus(url, ArchiveStatus.Archived) })
 							
 							// Else if an error is returned, store that one, notice, and abort the process.
 							.catch(e => {
 								console.log(e);
-								this.setUrlStatus(url, ArchivingStatus.Error, e.status);
+								this.setUrlStatus(url, ArchiveStatus.Error, e.status);
 								this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 								return;
 							})
 	
 							// Set the url archiving as "requested"
-							this.setUrlStatus(url, ArchivingStatus.Requested);
+							this.setUrlStatus(url, ArchiveStatus.Requested);
 						}
 					}
 				})
@@ -157,54 +155,9 @@ export default class WebArchiver extends Plugin {
 		else if (this.settings.noticesStyle === 2) new Notice(iconsOnlyMessage);
 	}
 	
-	async setUrlStatus(pastedUrl: string, status: ArchivingStatus, errorCode?: number) {
+	async setUrlStatus(pastedUrl: string, status: ArchiveStatus, errorCode?: number) {
 		this.database.urls[pastedUrl].status = status;
 		this.database.urls[pastedUrl].errorCode = errorCode ? errorCode : 0;
-		await this.writeData();
-	}
-	
-	async loadSettings() {
-		const data = await this.loadData();
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
-  }
-
-  async saveSettings() {
-		await this.saveData({
-			settings: this.settings,
-		});
-	}
-
-	async loadDatabase() {
-		// Get and create the archiveFile if it doesn't exist 
-		let archiveFile = await this.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
-		if (!archiveFile) archiveFile = await this.app.vault.create(this.settings.archiveFilePath, ""); 
-
-		// Convert the archive file as JSON
-		// * Match all level 2 UID headings 
-		let archiveFileContent = await this.app.vault.read(archiveFile)
-		const markdownHeadings = [...archiveFileContent.matchAll(/^## [a-zA-Z0-9]{6}/gm)]
-
-		// * Remove all line jumps
-		archiveFileContent = archiveFileContent.replaceAll("\n", "");
-
-		// * Replace markdown headings by JSON format
-		for (const matchedString of markdownHeadings) {
-			const markdownHeading = matchedString[0];
-			let newHeading = markdownHeading.replace("## ", ', "') + '": ';
-			archiveFileContent = archiveFileContent.replace(markdownHeading, newHeading);
-		}
-
-		// * Remove the two first chars
-		archiveFileContent = archiveFileContent.substring(2);
-
-		// * Surround the whole block with curly brackets
-		archiveFileContent = "{" + archiveFileContent + "}"; 
-
-		// * Parse the database as JSON and store it in memory
-		this.database = JSON.parse(archiveFileContent)
-	}
-
-	async writeDatabase () {
-		
+		await storeDatabase(this);
 	}
 }

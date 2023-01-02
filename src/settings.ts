@@ -1,5 +1,5 @@
 import WebArchiver from "./main";
-import { PluginSettingTab, Setting, App, setIcon } from "obsidian";
+import { PluginSettingTab, Setting, App, setIcon, Plugin } from "obsidian";
 import { FolderSuggest } from "./suggesters/FolderSuggester";
 
 export const enum NoticesStyles {
@@ -31,6 +31,17 @@ export const DEFAULT_SETTINGS: WebArchiverSettings = {
   archiveBoxFqdn: "",
   archivedLinkText: "(📁)",
   noticesStyle: NoticesStyles.Normal
+}
+
+export 	async function loadSettings(plugin: WebArchiver) {
+  const data = await plugin.loadData();
+  this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
+}
+
+export async function storeSettings(plugin: WebArchiver) {
+  await plugin.saveData({
+    settings: plugin.settings
+  });
 }
 
 export class WebArchiverSettingsTab extends PluginSettingTab {

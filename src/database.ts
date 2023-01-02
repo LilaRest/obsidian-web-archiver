@@ -1,23 +1,61 @@
-export enum ArchivingStatus {
-  Queued,
-  Requested,
-  Error,
-  Archived
+import WebArchiver from "./main";
+
+export enum ArchiveStatus {
+  Queued = "queued",
+  Requested = "requesed",
+  Error = "error",
+  Archived = "archived"
 }
 
-export interface PastedUrl {
-  status: ArchivingStatus;
-  errorCode: number;
+export interface Archive {
+  archive: string,
+  status: ArchiveStatus,
+  errCode: number
 }
 
-export interface PastedUrls {
-  [index: string]: PastedUrl;
+export interface ArchivedUrl {
+  url: string,
+  datetime: Date,
+  internetArchive: Archive,
+  archiveToday: Archive,
+  archiveBox: Archive
 }
 
 export interface WebArchiverDatabase {
-  urls: PastedUrls;
+  [index: string]: ArchivedUrl;
 }
 
-export const DEFAULT_DATABASE: WebArchiverDatabase = {
-  urls: {}
+export async function loadDatabase(plugin: WebArchiver) {
+  
+  // Get and create the archiveFile if it doesn't exist 
+  let archiveFile = plugin.app.vault.getAbstractFileByPath(this.settings.archiveFilePath);
+  if (!archiveFile) archiveFile = await plugin.app.vault.create(plugin.settings.archiveFilePath, ""); 
+
+  // Convert the archive file as JSON
+  // * Match all level 2 UID headings 
+  let archiveFileContent = await plugin.app.vault.read(archiveFile)
+  const markdownHeadings = [...archiveFileContent.matchAll(/^## [a-zA-Z0-9]{6}/gm)]
+
+  // * Remove all line jumps
+  archiveFileContent = archiveFileContent.replaceAll("\n", "");
+
+  // * Replace markdown headings by JSON format
+  for (const matchedString of markdownHeadings) {
+    const markdownHeading = matchedString[0];
+    let newHeading = markdownHeading.replace("## ", ', "') + '": ';
+    archiveFileContent = archiveFileContent.replace(markdownHeading, newHeading);
+  }
+
+  // * Remove the two first chars
+  archiveFileContent = archiveFileContent.substring(2);
+
+  // * Surround the whole block with curly brackets
+  archiveFileContent = "{" + archiveFileContent + "}"; 
+
+  // * Parse the database as JSON and store it in memory
+  plugin.database = JSON.parse(archiveFileContent)
+}
+
+export async function storeDatabase (plugin: WebArchiver) {
+
 }
