@@ -8,10 +8,11 @@ TODO:
 - Make the archive file read-only by listening on change event on it and preventing the action
 */
 
-import { Plugin, Editor, Notice, request, moment } from 'obsidian';
+import { Plugin, Editor, Notice, request, moment } from "obsidian";
 import { WebArchiverSettings, WebArchiverSettingsTab, loadSettings, storeSettings } from "./settings";
 import { WebArchiverDatabase, ArchivedUrl, ArchiveStatus, loadDatabase, storeDatabase } from "./database";
-import { urlRegex } from './constants';
+import { urlRegex, uuidDict } from "./constants";
+import { genUUID } from "./uuid" 
 
 
 export default class WebArchiver extends Plugin {
@@ -21,6 +22,7 @@ export default class WebArchiver extends Plugin {
 	async onload() {
     // Print console message
 		console.log(`Loading "Web Archiver 📁" plugin...`);
+		console.log(genUUID(uuidDict));
 
 		// Load settings from the JSON file
 		await loadSettings(this);
