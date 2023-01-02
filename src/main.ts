@@ -1,7 +1,6 @@
 /*
 TODO:
 - Add "Parse whole vault and archive all unarchived URLs" command
-- Add URL shorteners support for archived links (Cutt.ly, Kutt, Bit.ly)
 - Write the README.md
 - Submit the plugins to the Obsidian's plugins list
 - Set up CI/CD of releases with the Semantic Bot

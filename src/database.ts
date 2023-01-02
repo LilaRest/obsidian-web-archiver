@@ -1,3 +1,4 @@
+import { Editor, MarkdownView, Notice, TFile } from "obsidian";
 import { arch } from "os";
 import WebArchiver from "./main";
 
@@ -77,6 +78,18 @@ export class WebArchiverDatabase {
 			}.bind(this)
 		}
 		this.data = new Proxy(this._data, dataProxy);
+    
+    // Make the archive file read-only
+    const archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
+    this.plugin.registerEvent((this.plugin.app.workspace.on("editor-change", function (editor: Editor, info: MarkdownView) {
+
+      if (info.file === archiveFile) {
+        console.log("a")
+        editor.undo();
+        console.log(this.plugin.app.workspace)
+        new Notice("📁 Web Archiver: The archive-file is read-only.")
+      }
+    }.bind(this))))
   }
 
   onDataChange() {
@@ -86,7 +99,7 @@ export class WebArchiverDatabase {
 
   async load() {
     // Get and create the archiveFile if it doesn't exist 
-    let archiveFile = await this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
+    let archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
     if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.get("archiveFilePath"), ""); 
 
     // Convert the archive file as JSON
