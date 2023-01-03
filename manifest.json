@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-web-archiver",
 	"name": "Web Archiver 📁",
-	"version": "0.0.17",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Ensure you'll never lose the web contents you've captured by automatically storing them in a web archiving service like Archive.org, ArchiveBox, etc.",
 	"author": "LilaRest",
