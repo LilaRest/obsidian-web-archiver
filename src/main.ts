@@ -3,7 +3,6 @@ TODO:
 - Add "Parse whole vault and archive all unarchived URLs" command
 - Write the README.md
 - Submit the plugins to the Obsidian's plugins list
-- Set up CI/CD of releases with the Semantic Bot
 - Find an alternative to crypto in UUID else it will not work in mobile versions, see: https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md#nodejs-and-electron-api
 */
 
