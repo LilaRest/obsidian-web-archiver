@@ -90,7 +90,7 @@ export class WebArchiverDatabase {
         this.writingOngoing = true;
         editor.undo();
         this.writingOngoing = false;
-        new Notice("📁 Web Archiver: The archive-file is read-only.")
+        this.plugin.notice("The archive-file is read-only.", "Read-only.", "👀")
       }
     }.bind(this))))
   }
@@ -195,7 +195,7 @@ export class WebArchiverDatabase {
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
 						this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
-						this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 						return;
 					}
 					
@@ -217,7 +217,7 @@ export class WebArchiverDatabase {
 						// Else if an error is returned, store that one, notice, and abort the process.
 						.catch(async function (e: any) {
 							this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
-							this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 							return;
 						}.bind(this))
 						this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Requested);
@@ -248,7 +248,7 @@ export class WebArchiverDatabase {
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
 						this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
-						this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 						return;
 					}
 					
@@ -271,7 +271,7 @@ export class WebArchiverDatabase {
 						// Else if an error is returned, store that one, notice, and abort the process.
 						.catch(async function (e: any) {
 							this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
-							this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 							return;
 						}.bind(this))
 						this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Requested);
@@ -301,7 +301,7 @@ export class WebArchiverDatabase {
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
 						this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
-						this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 						return;
 					}
 					
@@ -330,7 +330,7 @@ export class WebArchiverDatabase {
 						// Else if an error is returned, store that one, notice, and abort the process.
 						.catch(async function (e: any) {
 							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
-							this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 							return;
 						}.bind(this))
 						this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Requested);
@@ -339,7 +339,7 @@ export class WebArchiverDatabase {
 			}
 		}
 	
-		this.plugin.notice("📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.", "📁 Web Archiver: Queued.", "📁 : ✅");
+		this.plugin.notice("Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.", "Queued.", "✅");
 	}
 
   setStatus(archiveId: string, archiveProvider: string, status: ArchiveStatus,     errorCode?: number) {

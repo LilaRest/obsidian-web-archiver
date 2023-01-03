@@ -279,7 +279,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         }
         else if (this.plugin.settings.get("noticesStyle") === NoticesStyles.IconsOnly) {
           noticePreview.style.display = "flex";
-          noticePreviewDynamicEl.innerHTML = "📁 : ✅";
+          noticePreviewDynamicEl.innerHTML = "📁: ✅";
         }
         else if (this.plugin.settings.get("noticesStyle") === NoticesStyles.Hidden) {
           noticePreview.style.display = "none";

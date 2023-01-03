@@ -70,8 +70,8 @@ export default class WebArchiver extends Plugin {
 	}
 
 	notice(normalMessage: string, minimalMessage: string, iconsOnlyMessage: string) {
-		if (this.settings.get("noticesStyle") === 0) new Notice(normalMessage);
-		else if (this.settings.get("noticesStyle") === 1) new Notice(minimalMessage);
-		else if (this.settings.get("noticesStyle") === 2) new Notice(iconsOnlyMessage);
+		if (this.settings.get("noticesStyle") === 0) new Notice("📁 Web Archiver: " + normalMessage);
+		else if (this.settings.get("noticesStyle") === 1) new Notice("📁 Web Archiver: " + minimalMessage);
+		else if (this.settings.get("noticesStyle") === 2) new Notice("📁: " + iconsOnlyMessage);
 	}
 }
