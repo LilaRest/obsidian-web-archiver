@@ -39,10 +39,9 @@ export class WebArchiverSettings {
   data: SettingsData;
   lastTimeout: any;
 
-
   constructor (plugin: WebArchiver) {
     this.plugin = plugin;
-    this._data = {};
+    this._data = DEFAULT_SETTINGS;
   }
 
   async init () {

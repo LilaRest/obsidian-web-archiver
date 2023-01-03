@@ -5,6 +5,7 @@ TODO:
 - Submit the plugins to the Obsidian's plugins list
 - Set up CI/CD of releases with the Semantic Bot
 - Make the archive file read-only by listening on change event on it and preventing the action
+- Find an alternative to crypto in UUID else it will not work in mobile versions, see: https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md#nodejs-and-electron-api
 */
 
 import { Plugin, Editor, Notice, request, moment } from "obsidian";
@@ -101,7 +102,7 @@ export default class WebArchiver extends Plugin {
 				}.bind(this))
 				
 				// Else, continue archiving process
-				.catch(async function (e) {
+				.catch(async function (e: any) {
 					
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
@@ -126,7 +127,7 @@ export default class WebArchiver extends Plugin {
 						}.bind(this))
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
-						.catch(async function (e) {
+						.catch(async function (e: any) {
 							this.database.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
 							this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 							return;
@@ -150,12 +151,11 @@ export default class WebArchiver extends Plugin {
 				// If it is, set its status to "archived"
 				.then(async function (res) {
 					this.database.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
-					console.log(this.database.get(archiveUUID))
 					this.database.get(archiveUUID).archiveToday.archive = archiveUrl;
 				}.bind(this))
 				
 				// Else, continue archiving process
-				.catch(async function (e) {
+				.catch(async function (e: any) {
 					
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
@@ -181,7 +181,7 @@ export default class WebArchiver extends Plugin {
 						}.bind(this))
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
-						.catch(async function (e) {
+						.catch(async function (e: any) {
 							this.database.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
 							this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 							return;
@@ -194,7 +194,6 @@ export default class WebArchiver extends Plugin {
 
 		// Archive on ArchiveBox instance
 		if (this.settings.get("useArchiveBox")) {
-			console.log("use")
 			if (this.database.get(archiveUUID).archiveBox.status === ArchiveStatus.NotStarted) {
 				// Build the archive URL
 				const archiveUrl = `https://${this.settings.get("archiveBoxFqdn")}/archive/${moment.now()}/${url}`;
@@ -204,13 +203,12 @@ export default class WebArchiver extends Plugin {
 				
 				// If it is, set its status to "archived"
 				.then(async function (res) {
-					console.log("aaaa")
 					this.database.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Archived);
 					this.database.get(archiveUUID).archiveBox.archive = archiveUrl;
 				}.bind(this))
 				
 				// Else, continue archiving process
-				.catch(async function (e) {
+				.catch(async function (e: any) {
 					
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
@@ -242,7 +240,7 @@ export default class WebArchiver extends Plugin {
 						}.bind(this))
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
-						.catch(async function (e) {
+						.catch(async function (e: any) {
 							this.database.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
 							this.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
 							return;

@@ -38,10 +38,12 @@ export class WebArchiverDatabase {
   _data: DatabaseData;
   data: DatabaseData;
   lastTimeout: any;
+  writingOngoing: boolean;
   
   constructor (plugin: WebArchiver) {
     this.plugin = plugin;
     this._data = {};
+    this.writingOngoing = false;
   }
 
   async init() {
@@ -81,12 +83,12 @@ export class WebArchiverDatabase {
     
     // Make the archive file read-only
     const archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
-    this.plugin.registerEvent((this.plugin.app.workspace.on("editor-change", function (editor: Editor, info: MarkdownView) {
-
-      if (info.file === archiveFile) {
-        console.log("a")
+    this.plugin.registerEvent((this.plugin.app.workspace.on("editor-change", async function (editor: Editor, info: MarkdownView) {
+      
+      if (info.file === archiveFile && !this.writingOngoing) {
+        this.writingOngoing = true;
         editor.undo();
-        console.log(this.plugin.app.workspace)
+        this.writingOngoing = false;
         new Notice("📁 Web Archiver: The archive-file is read-only.")
       }
     }.bind(this))))
@@ -104,27 +106,30 @@ export class WebArchiverDatabase {
 
     // Convert the archive file as JSON
     // * Match all level 2 UID headings 
-    let archiveFileContent = await this.plugin.app.vault.read(archiveFile)
-    const markdownHeadings = [...archiveFileContent.matchAll(/^## [a-zA-Z0-9]{6}/gm)]
+    if (archiveFile instanceof TFile) { // Cast archiveFile to TFile, see: https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md#avoid-iterating-all-files-to-find-a-file-by-its-path
+      let archiveFileContent = await this.plugin.app.vault.read(archiveFile)
 
-    // * Remove all line jumps
-    archiveFileContent = archiveFileContent.replaceAll("\n", "");
+      const markdownHeadings = [...archiveFileContent.matchAll(/^## [a-zA-Z0-9]{6}/gm)]
 
-    // * Replace markdown headings by JSON format
-    for (const matchedString of markdownHeadings) {
-      const markdownHeading = matchedString[0];
-      let newHeading = markdownHeading.replace("## ", ', "') + '": ';
-      archiveFileContent = archiveFileContent.replace(markdownHeading, newHeading);
+      // * Remove all line jumps
+      archiveFileContent = archiveFileContent.replaceAll("\n", "");
+
+      // * Replace markdown headings by JSON format
+      for (const matchedString of markdownHeadings) {
+        const markdownHeading = matchedString[0];
+        let newHeading = markdownHeading.replace("## ", ', "') + '": ';
+        archiveFileContent = archiveFileContent.replace(markdownHeading, newHeading);
+      }
+
+      // * Remove the two first chars
+      archiveFileContent = archiveFileContent.substring(2);
+
+      // * Surround the whole block with curly braces
+      archiveFileContent = "{" + archiveFileContent + "}";
+
+      // * Parse the database as JSON and store it in memory
+      this._data = JSON.parse(archiveFileContent)
     }
-
-    // * Remove the two first chars
-    archiveFileContent = archiveFileContent.substring(2);
-
-    // * Surround the whole block with curly braces
-    archiveFileContent = "{" + archiveFileContent + "}"; 
-
-    // * Parse the database as JSON and store it in memory
-    this._data = JSON.parse(archiveFileContent)
   }
 
   async store () {
@@ -137,10 +142,14 @@ export class WebArchiverDatabase {
     }
   
     // Get the archiveFile object
-    let archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
+    let archiveFile =  this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
 
     // Write the new text content
-    this.plugin.app.vault.modify(archiveFile, newTextContent);
+    if (archiveFile instanceof TFile) { // Cast archiveFile to TFile, see: https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md#avoid-iterating-all-files-to-find-a-file-by-its-path
+      this.writingOngoing = true;
+      await this.plugin.app.vault.modify(archiveFile, newTextContent);
+      this.writingOngoing = false;
+    }
   }
 
   get(archiveUUID: string): ArchivedUrl {
