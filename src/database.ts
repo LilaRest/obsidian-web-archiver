@@ -220,24 +220,23 @@ export class WebArchiverDatabase {
             const requestUrl = "https://web.archive.org/save/" + url;
 
             // Send the request
-            const req = request(requestUrl)
+            const saveReq = request(requestUrl)
               
             // Set the archive status as "requested"
             this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Requested)
 
             // If the request is successful, set the pasted URL status to "archived"
-            req.then(async function (res) {
+            saveReq.then(async function (res) {
               this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived)
               this.get(archiveUUID).internetArchive.archive = archiveUrl;
             }.bind(this))
           
             // Else if an error is returned, store that one, notice, and abort the process.
-            req.catch(async function (e: any) {
+            .catch(async function (e: any) {
               this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
               this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
               return;
             }.bind(this))
-            this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Requested);
           }
         }.bind(this))
       }
@@ -258,50 +257,46 @@ export class WebArchiverDatabase {
         // Check if the URL is already archived
         request({ url: archiveUrl })
                     
+        .then(async function (res) {
           // If it is, set its status to "archived"
-          .then(async function (res) {
+          if (!res.contains("No results")) {
             this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
             this.get(archiveUUID).archiveToday.archive = archiveUrl;
-          }.bind(this))
+          }
           
           // Else, continue archiving process
-          .catch(async function (e: any) {
-            
-            // If the error code !== 404, store that one, notice, and abort the process 
-            if (e.status !== 404) {
+          else {
+            // Build the request URL
+            const requestUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=" + url;
+
+            // Send the request
+            const saveReq = request(requestUrl)
+              
+            // Set the archive status as "requested"
+            this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Requested)
+
+            // If the request is successful, set the pasted URL status to "archived"
+            saveReq.then(async function (res) {
+              
+              this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
+              this.get(archiveUUID).archiveToday.archive = archiveUrl;
+            }.bind(this))
+        
+            // Else if an error is returned, store that one, notice, and abort the process.
+            .catch(async function (e: any) {
               this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
               this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
               return;
-            }
-            
-            // Else request for archiving the pasted URL
-            else {
-
-              // Build the request URL
-              const requestUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=" + url;
-
-              // Send the request
-              const req = request(requestUrl)
-                
-              // Set the archive status as "requested"
-              this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Requested)
-
-                // If the request is successful, set the pasted URL status to "archived"
-                req.then(async function (res) {
-                  if (res.contains("No results")) throw { status: 404 }; // Support ArchiveToday which doesn't throw a 404 if the archive doesn't exist, but instead display a code 200 page with "No results" text displayed.
-                  this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
-                  this.get(archiveUUID).archiveToday.archive = archiveUrl;
-                }.bind(this))
-            
-                // Else if an error is returned, store that one, notice, and abort the process.
-                req.catch(async function (e: any) {
-                  this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
-                  this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
-                  return;
-                }.bind(this))
-              this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Requested);
-            }
-          }.bind(this))
+            }.bind(this))
+          }
+        }.bind(this))
+        
+        // If an error is thrown:, store that one, notice, and abort the process
+        .catch(async function (e: any) {
+          this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
+          this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
+          return;             
+        }.bind(this))
       }
     }
   }
@@ -327,6 +322,7 @@ export class WebArchiverDatabase {
 				
 				// Else, continue archiving process
 				.catch(async function (e: any) {
+          console.log("Archive box error !")
 					
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
@@ -339,7 +335,7 @@ export class WebArchiverDatabase {
 					else {
 
 						// Send the request
-						const req = request({
+						const saveReq = request({
 								"url": "https://archive.vuethers.org/add/",
 								"method": "POST",
 								"headers": {
@@ -352,18 +348,18 @@ export class WebArchiverDatabase {
             this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Requested)
 
 						// If the request is successful, set the pasted URL status to "archived"
-						req.then(async function (res) {
+						saveReq.then(async function (res) {
 							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Archived)
 							this.get(archiveUUID).archiveBox.archive = archiveUrl;
 						}.bind(this))
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
-						req.catch(async function (e: any) {
+            .catch(async function (e: any) {
+              console.log("Archive box error 2")
 							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
 							this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 							return;
 						}.bind(this))
-						this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Requested);
 					}
 				}.bind(this))
 			}
