@@ -1,6 +1,7 @@
-import { Editor, MarkdownView, Notice, TFile } from "obsidian";
-import { arch } from "os";
+import { Editor, MarkdownView, Notice, TFile, request, moment } from "obsidian";
 import WebArchiver from "./main";
+import { genUUID } from "./uuid" 
+
 
 export enum ArchiveStatus {
   NotStarted = "not-started",
@@ -155,6 +156,191 @@ export class WebArchiverDatabase {
   get(archiveUUID: string): ArchivedUrl {
     return this.data[archiveUUID];
   }
+  
+  async archive(url: string, editor: Editor, uuid?: string) {
+
+		// Generate archive UUID if it isn't provided.
+		const archiveUUID = uuid ? uuid : genUUID(Object.keys(this.data));
+
+		// If the UUID is not already in the database, store it
+		if (!this.get(archiveUUID)) {
+			this.data[archiveUUID] = {
+				url: url,
+				datetime: moment().format("YYYY-MM-DDTHH:mm:ss"),
+				internetArchive: Object.assign({}, DEFAULT_ARCHIVE),
+				archiveToday: Object.assign({}, DEFAULT_ARCHIVE),
+				archiveBox: Object.assign({}, DEFAULT_ARCHIVE)
+			}
+		}
+
+		// Archive on Internet Archive
+		if (this.plugin.settings.get("useInternetArchive")) {
+			if (this.get(archiveUUID).internetArchive.status === ArchiveStatus.NotStarted) {
+
+				// Build the archive URL
+				const archiveUrl = `https://web.archive.org/web/${moment().format("YYYYMMDDHHmm")}/${url}`;
+
+				// Check if the URL is already archived
+				request({ url: archiveUrl })
+				
+				// If it is, set its status to "archived"
+				.then(async function (res) {
+					this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived);
+					this.get(archiveUUID).internetArchive.archive = archiveUrl;
+				}.bind(this))
+				
+				// Else, continue archiving process
+				.catch(async function (e: any) {
+					
+					// If the error code !== 404, store that one, notice, and abort the process 
+					if (e.status !== 404) {
+						this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
+						this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						return;
+					}
+					
+					// Else request for archiving the pasted URL
+					else {
+
+						// Build the request URL
+						const requestUrl = "https://web.archive.org/save/" + url;
+
+						// Send the request
+						request(requestUrl)
+
+						// If the request is successful, set the pasted URL status to "archived"
+						.then(async function (res) {
+							this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived)
+							this.get(archiveUUID).internetArchive.archive = archiveUrl;
+						}.bind(this))
+					
+						// Else if an error is returned, store that one, notice, and abort the process.
+						.catch(async function (e: any) {
+							this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Error, e.status);
+							this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							return;
+						}.bind(this))
+						this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Requested);
+					}
+				}.bind(this))
+			}
+		}
+
+		// Archive on Archive.today
+		if (this.plugin.settings.get("useArchiveToday")) {
+			if (this.get(archiveUUID).archiveToday.status === ArchiveStatus.NotStarted) {
+
+				// Build the archive URL
+				const archiveUrl = `https://archive.ph/${moment().format("YYYYMMDDHHmm")}/${url}`;
+
+				// Check if the URL is already archived
+				request({ url: archiveUrl })
+				
+				// If it is, set its status to "archived"
+				.then(async function (res) {
+					this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
+					this.get(archiveUUID).archiveToday.archive = archiveUrl;
+				}.bind(this))
+				
+				// Else, continue archiving process
+				.catch(async function (e: any) {
+					
+					// If the error code !== 404, store that one, notice, and abort the process 
+					if (e.status !== 404) {
+						this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
+						this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						return;
+					}
+					
+					// Else request for archiving the pasted URL
+					else {
+
+						// Build the request URL
+						const requestUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=" + url;
+
+						// Send the request
+						request(requestUrl)
+
+						// If the request is successful, set the pasted URL status to "archived"
+						.then(async function (res) {
+							if (res.contains("No results")) throw { status: 404 }; // Support ArchiveToday which doesn't throw a 404 if the archive doesn't exist, but instead display a code 200 page with "No results" text displayed.
+							this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
+							this.get(archiveUUID).archiveToday.archive = archiveUrl;
+						}.bind(this))
+					
+						// Else if an error is returned, store that one, notice, and abort the process.
+						.catch(async function (e: any) {
+							this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
+							this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							return;
+						}.bind(this))
+						this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Requested);
+					}
+				}.bind(this))
+			}
+		}
+
+		// Archive on ArchiveBox instance
+		if (this.plugin.settings.get("useArchiveBox")) {
+			if (this.get(archiveUUID).archiveBox.status === ArchiveStatus.NotStarted) {
+				// Build the archive URL
+				const archiveUrl = `https://${this.plugin.settings.get("archiveBoxFqdn")}/archive/${moment.now()}/${url}`;
+			
+				// Check if the URL is already archived
+				request({ url: archiveUrl })
+				
+				// If it is, set its status to "archived"
+				.then(async function (res) {
+					this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Archived);
+					this.get(archiveUUID).archiveBox.archive = archiveUrl;
+				}.bind(this))
+				
+				// Else, continue archiving process
+				.catch(async function (e: any) {
+					
+					// If the error code !== 404, store that one, notice, and abort the process 
+					if (e.status !== 404) {
+						this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
+						this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+						return;
+					}
+					
+					// Else request for archiving the pasted URL
+					else {
+
+						// Build the request URL
+						const requestUrl = "https://web.archive.org/save/" + url;
+
+						// Send the request
+						request({
+								"url": "https://archive.vuethers.org/add/",
+								"method": "POST",
+								"headers": {
+									"Content-Type": "application/x-www-form-urlencoded",
+								},
+								"body": `url=${url}&parser=auto&tag=&depth=0`,
+							})
+
+						// If the request is successful, set the pasted URL status to "archived"
+						.then(async function (res) {
+							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Archived)
+							this.get(archiveUUID).archiveBox.archive = archiveUrl;
+						}.bind(this))
+					
+						// Else if an error is returned, store that one, notice, and abort the process.
+						.catch(async function (e: any) {
+							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
+							this.plugin.notice(`📁 Web Archiver: Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `📁 Web Archiver: ${e.status} error.`, "📁 : ❌");
+							return;
+						}.bind(this))
+						this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Requested);
+					}
+				}.bind(this))
+			}
+		}
+	
+		this.plugin.notice("📁 Web Archiver: Pasted URL successfully queued for archiving. The archived content may take several minutes to be available.", "📁 Web Archiver: Queued.", "📁 : ✅");
+	}
 
   setStatus(archiveId: string, archiveProvider: string, status: ArchiveStatus,     errorCode?: number) {
 		if (archiveProvider === "internetArchive") {
