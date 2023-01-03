@@ -214,6 +214,9 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         );
     }
 
+    // Archiving section
+    containerEl.createEl("h2", { text: "Archiving", cls: "settings-header" });
+
     // Appearance section
     containerEl.createEl("h2", { text: "Appearance", cls: "settings-header" });
 
