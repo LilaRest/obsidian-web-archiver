@@ -4,7 +4,6 @@ TODO:
 - Write the README.md
 - Submit the plugins to the Obsidian's plugins list
 - Set up CI/CD of releases with the Semantic Bot
-- Make the archive file read-only by listening on change event on it and preventing the action
 - Find an alternative to crypto in UUID else it will not work in mobile versions, see: https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md#nodejs-and-electron-api
 */
 
