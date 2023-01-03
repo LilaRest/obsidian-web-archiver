@@ -59,7 +59,7 @@ export default class WebArchiver extends Plugin {
 							// Move the cursor next to the archive link
 							editor.setCursor(editor.getCursor().line, editor.getCursor().ch + archiveLink.length)
 						
-							await this.database.archive(pastedText, editor, archiveUUID);
+							await this.database.archive(pastedText, archiveUUID);
 						}
 					}
 				}.bind(this)));
