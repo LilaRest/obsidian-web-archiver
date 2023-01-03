@@ -41,7 +41,10 @@ export default class WebArchiver extends Plugin {
 					if (evt.clipboardData) {
 
 						// Retrieve pasted text
-						const pastedText = evt.clipboardData.getData("text/plain");
+						let pastedText = evt.clipboardData.getData("text/plain");
+
+						// Remove trailing whitespaces and carret return from the pasted text to handle non-clean pastes
+						pastedText = pastedText.trim().replaceAll("\n", "");
 
 						// If the pasted text is an URL, send it to archiving queue
 						if (urlRegex.test(pastedText)) {
