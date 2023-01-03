@@ -256,29 +256,42 @@ export class WebArchiverDatabase {
         // Check if the URL is already archived
         request({ url: archiveUrl })
                     
-        .then(async function (res) {
-          // If it is, set its status to "archived"
-          if (!res.contains("No results")) {
-            this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
-            this.get(archiveUUID).archiveToday.archive = archiveUrl;
+        // If it is, set its status to "archived"
+        .then(async function () {
+          console.log("aaa")
+          this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
+          this.get(archiveUUID).archiveToday.archive = archiveUrl;
+        }.bind(this))
+          
+        .catch(async function (e: any) { 
+            
+          // If the error code !== 404, store that one, notice, and abort the process 
+          if (e.status !== 404) {
+            this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
+            this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
+            return;
           }
           
-          // Else, continue archiving process
+          // Else request for archiving the pasted URL
           else {
             // Build the request URL
             const requestUrl = "https://robustlinks.mementoweb.org/api/?archive=archive.today&url=" + url;
 
-            // Send the request
-            const saveReq = request(requestUrl)
-              
             // Set the archive status as "requested"
             this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Requested)
 
+            // Send the request
+            const saveReq = request(requestUrl)
+
             // If the request is successful, set the pasted URL status to "archived"
             saveReq.then(async function (res) {
+              const jsonRes = JSON.parse(res);
               
-              this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
-              this.get(archiveUUID).archiveToday.archive = archiveUrl;
+              request(jsonRes["data-versionurl"])
+              .then(function () {
+                this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
+                this.get(archiveUUID).archiveToday.archive = jsonRes["data-versionurl"].replace("/wip", "");
+              }.bind(this))
             }.bind(this))
         
             // Else if an error is returned, store that one, notice, and abort the process.
@@ -292,6 +305,8 @@ export class WebArchiverDatabase {
         
         // If an error is thrown:, store that one, notice, and abort the process
         .catch(async function (e: any) {
+          console.log("mama")
+          console.log(e)
           this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Error, e.status);
           this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
           return;             
