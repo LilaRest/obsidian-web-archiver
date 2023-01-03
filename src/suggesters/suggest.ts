@@ -3,6 +3,8 @@
 import { ISuggestOwner, Scope } from "obsidian";
 import { createPopper, Instance as PopperInstance } from "@popperjs/core";
 
+app.vault
+
 const wrapAround = (value: number, size: number): number => {
     return ((value % size) + size) % size;
 };
@@ -150,7 +152,7 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 
         if (suggestions.length > 0) {
             this.suggest.setSuggestions(suggestions);
-            this.open(app.dom.appContainerEl, this.inputEl);
+            this.open(app.workspace.containerEl, this.inputEl);
         } else {
             this.close();
         }
