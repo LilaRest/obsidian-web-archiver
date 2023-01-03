@@ -1,9 +1,8 @@
-name: Release Obsidian plugin
+name: CI-CD
 
 on:
   push:
-    tags:
-      - "*"
+    branches: [main]
 
 env:
   PLUGIN_NAME: obsidian-web-archiver
