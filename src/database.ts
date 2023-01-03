@@ -1,5 +1,4 @@
-import { Editor, MarkdownView, Notice, TFile, request, moment } from "obsidian";
-import { stringify } from "querystring";
+import { Editor, MarkdownView, Notice, TFile, request, requestUrl, moment } from "obsidian";
 import WebArchiver from "./main";
 import { genUUID } from "./uuid" 
 
@@ -198,7 +197,7 @@ export class WebArchiverDatabase {
         request({ url: archiveUrl })
         
         // If it is, set its status to "archived"
-        .then(async function (res) {
+        .then(async function () {
           this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived);
           this.get(archiveUUID).internetArchive.archive = archiveUrl;
         }.bind(this))
@@ -226,7 +225,7 @@ export class WebArchiverDatabase {
             this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Requested)
 
             // If the request is successful, set the pasted URL status to "archived"
-            saveReq.then(async function (res) {
+            saveReq.then(async function () {
               this.setStatus(archiveUUID, "internetArchive", ArchiveStatus.Archived)
               this.get(archiveUUID).internetArchive.archive = archiveUrl;
             }.bind(this))
@@ -309,20 +308,19 @@ export class WebArchiverDatabase {
 		if (this.plugin.settings.get("useArchiveBox")) {
 			if (this.get(archiveUUID).archiveBox.status === ArchiveStatus.NotStarted) {
 				// Build the archive URL
-				const archiveUrl = `https://${this.plugin.settings.get("archiveBoxFqdn")}/archive/${moment.now()}/${url}`;
+				const archiveUrl = `https://${this.plugin.settings.get("archiveBoxFqdn")}/archive/${url}`;
 			
 				// Check if the URL is already archived
 				request({ url: archiveUrl })
 				
 				// If it is, set its status to "archived"
-				.then(async function (res) {
+				.then(async function () {
 					this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Archived);
 					this.get(archiveUUID).archiveBox.archive = archiveUrl;
 				}.bind(this))
 				
 				// Else, continue archiving process
 				.catch(async function (e: any) {
-          console.log("Archive box error !")
 					
 					// If the error code !== 404, store that one, notice, and abort the process 
 					if (e.status !== 404) {
@@ -335,8 +333,8 @@ export class WebArchiverDatabase {
 					else {
 
 						// Send the request
-						const saveReq = request({
-								"url": "https://archive.vuethers.org/add/",
+						const saveReq = requestUrl({
+								"url": `https://${this.plugin.settings.get("archiveBoxFqdn")}/add/`,
 								"method": "POST",
 								"headers": {
 									"Content-Type": "application/x-www-form-urlencoded",
@@ -348,14 +346,14 @@ export class WebArchiverDatabase {
             this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Requested)
 
 						// If the request is successful, set the pasted URL status to "archived"
-						saveReq.then(async function (res) {
+            saveReq.then(async function () {
 							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Archived)
 							this.get(archiveUUID).archiveBox.archive = archiveUrl;
 						}.bind(this))
 					
 						// Else if an error is returned, store that one, notice, and abort the process.
             .catch(async function (e: any) {
-              console.log("Archive box error 2")
+              console.log("eerr")
 							this.setStatus(archiveUUID, "archiveBox", ArchiveStatus.Error, e.status);
 							this.plugin.notice(`Archiving request returned a ${e.status} error. Will retry later, please ensure the archiving server is up.`, `${e.status} error.`, "❌");
 							return;
