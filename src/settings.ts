@@ -31,6 +31,7 @@ export interface SettingsData {
   archiveBoxFqdn: string;
   archivedLinkText: string;
   noticesStyle: NoticesStyles;
+  [index: string]: any;
 }
 
 export class WebArchiverSettings {

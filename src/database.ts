@@ -284,9 +284,9 @@ export class WebArchiverDatabase {
             const saveReq = request(requestUrl)
 
             // If the request is successful, set the pasted URL status to "archived"
-            saveReq.then(async function (res) {
+            saveReq.then(async function (res: any) {
               const jsonRes = JSON.parse(res);
-              
+
               request(jsonRes["data-versionurl"])
               .then(function () {
                 this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived)
