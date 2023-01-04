@@ -68,8 +68,9 @@ export class WebArchiverSettings {
   }
 
   async load() {
-    const data = await this.plugin.loadData();
-    this._data = Object.assign({}, DEFAULT_SETTINGS, data.settings ? data.settings : {});		
+    let dataJSON = await this.plugin.loadData();
+    dataJSON = dataJSON ? dataJSON : { settings: DEFAULT_SETTINGS };
+    this._data = Object.assign({}, DEFAULT_SETTINGS, dataJSON.settings);		
   }
 
   async store() {

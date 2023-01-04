@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Notice, TFile, request, requestUrl, moment } from "obsidian";
+import { Editor, MarkdownView, TFile, request, requestUrl, moment } from "obsidian";
 import WebArchiver from "./main";
 import { genUUID } from "./uuid" 
 
