@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.11](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.10...0.1.11) (2023-01-04)
+
+
+### Bug Fixes
+
+* prevent archive file path to start by "/" ([5f3d884](https://github.com/LilaRest/obsidian-web-archiver/commit/5f3d884d3a6f406f88bf1ec1769aaa9fcbc3e3fc))
+
 ### [0.1.10](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.9...0.1.10) (2023-01-04)
 
 
