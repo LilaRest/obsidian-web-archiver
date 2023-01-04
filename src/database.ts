@@ -107,10 +107,6 @@ export class WebArchiverDatabase {
       if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.get("archiveFilePath"), ""); 
     }
     catch (e: any) {
-      console.log("ERROR WHILE CREATE FILE")
-      console.log(e.name)
-      console.log(e.message)
-      console.log(e.cause)
       // Throw if the error is different that "File already exists."
       if (e.message !== "File already exists.") {
         throw e;
@@ -270,7 +266,6 @@ export class WebArchiverDatabase {
                     
         // If it is, set its status to "archived"
         .then(async function () {
-          console.log("aaa")
           this.setStatus(archiveUUID, "archiveToday", ArchiveStatus.Archived);
           this.get(archiveUUID).archiveToday.archive = archiveUrl;
         }.bind(this))

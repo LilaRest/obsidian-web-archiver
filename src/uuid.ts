@@ -22,7 +22,6 @@ export function genUUID(existingIds: Array<string>): string {
   let uuid = "";
   const max = uuidDict.length - 1;
   for (let i = 0; i < 6; i++) {
-    console.log("mobile ? " + this.app.isMobile)
     uuid += uuidDict[this.app.isMobile ? genRandomIntMobile(0, max) : genRandomIntDesktop(0, max)];
   }
   if (existingIds.contains(uuid)) {

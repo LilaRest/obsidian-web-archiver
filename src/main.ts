@@ -3,6 +3,7 @@ TODO:
 - Add "Parse whole vault and archive all unarchived URLs" command
 - Write the README.md
 - Submit the plugins to the Obsidian's plugins list
+- Display a "Reload plugin" button when one of the archive file's settings have been modified
 */
 
 import { Plugin, Editor, Notice } from "obsidian";
@@ -18,7 +19,7 @@ export default class WebArchiver extends Plugin {
 
 	async onload() {
 		this.app.workspace.onLayoutReady(async function () {
-			
+
 			// Print console message
 			console.log(`Loading "Web Archiver 📁" plugin...`);
 
