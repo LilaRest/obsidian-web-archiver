@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.10](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.9...0.1.10) (2023-01-04)
+
+
+### Bug Fixes
+
+* database load() causing an error on mobile devices when file already exists ([8465489](https://github.com/LilaRest/obsidian-web-archiver/commit/84654898a7296d74fab986815532727fd01e7a28))
+
 ### [0.1.9](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.8...0.1.9) (2023-01-04)
 
 
