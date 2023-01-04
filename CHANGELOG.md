@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.7](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.6...0.1.7) (2023-01-04)
+
+
+### Bug Fixes
+
+* remove the test comment ([748c869](https://github.com/LilaRest/obsidian-web-archiver/commit/748c8694d2db95f24ed8b6c58b117884af9c8733))
+
 ### [0.1.6](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.5...0.1.6) (2023-01-04)
 
 
