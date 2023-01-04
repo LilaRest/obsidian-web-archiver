@@ -103,7 +103,19 @@ export class WebArchiverDatabase {
   async load() {
     // Get and create the archiveFile if it doesn't exist 
     let archiveFile = this.plugin.app.vault.getAbstractFileByPath(this.plugin.settings.get("archiveFilePath"));
-    if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.get("archiveFilePath"), ""); 
+    try {
+      if (!archiveFile) archiveFile = await this.plugin.app.vault.create(this.plugin.settings.get("archiveFilePath"), ""); 
+    }
+    catch (e: any) {
+      console.log("ERROR WHILE CREATE FILE")
+      console.log(e.name)
+      console.log(e.message)
+      console.log(e.cause)
+      // Throw if the error is different that "File already exists."
+      if (e.message !== "File already exists.") {
+        throw e;
+      }
+    }
 
     // Convert the archive file as JSON
     // * Match all level 2 UID headings 

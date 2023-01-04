@@ -18,6 +18,7 @@ export default class WebArchiver extends Plugin {
 
 	async onload() {
 		this.app.workspace.onLayoutReady(async function () {
+			
 			// Print console message
 			console.log(`Loading "Web Archiver 📁" plugin...`);
 
