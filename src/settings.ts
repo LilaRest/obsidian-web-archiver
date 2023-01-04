@@ -153,7 +153,8 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
       if (dynamicEl) {
         if (lastTimeout) clearTimeout(lastTimeout);
         lastTimeout = setTimeout(async function () {
-          const archiveFilePath = this.plugin.settings.get("archiveFileParentFolder") + (this.plugin.settings.get("archiveFileParentFolder").slice(-1) === "/" ? "" : "/") + this.plugin.settings.get("archiveFileName") + (this.plugin.settings.get("archiveFileName").slice(-3) === ".md" ? "" : ".md")
+          let archiveFilePath = this.plugin.settings.get("archiveFileParentFolder") + (this.plugin.settings.get("archiveFileParentFolder").slice(-1) === "/" ? "" : "/") + this.plugin.settings.get("archiveFileName") + (this.plugin.settings.get("archiveFileName").slice(-3) === ".md" ? "" : ".md")
+          archiveFilePath = archiveFilePath.startsWith("/") ? archiveFilePath.substring(1) : archiveFilePath;
           dynamicEl.innerHTML = archiveFilePath;
           this.plugin.settings.set("archiveFilePath", archiveFilePath);
         }.bind(this), 200);
