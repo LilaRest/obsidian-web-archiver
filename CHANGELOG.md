@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.8](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.7...0.1.8) (2023-01-04)
+
+
+### Features
+
+* add proper shebang to the script file + rename it ([99b31f1](https://github.com/LilaRest/obsidian-web-archiver/commit/99b31f1502b190d5983179c6f626a25b369c4f97))
+* make the genUUID method compatible with mobile devices ([9294673](https://github.com/LilaRest/obsidian-web-archiver/commit/9294673396a43c7e3e1f82c3a0e53840ff193191))
+
+
+### Bug Fixes
+
+* typo + test release script ([d6ffe71](https://github.com/LilaRest/obsidian-web-archiver/commit/d6ffe714809614483f13fbf8b0bce34f3b06e64a))
+
 ### [0.1.7](https://github.com/LilaRest/obsidian-web-archiver/compare/0.1.6...0.1.7) (2023-01-04)
 
 
