@@ -2,7 +2,7 @@
 
 ## Why should I use that plugin ?
 **The web is very volatile**, from a day to the other a website can be **broken**, **modified** or even **shutted down**.
-As a result, in the future, a part of the URLs you pasted into your Obsidian's vault are very likely to not return the content you'd seen at paste-time. Leading to a **lost of your sources and inspirations**.
+As a result, as time goes on, a part of the URLs you pasted into your Obsidian's vault are very likely to not return anymore the content you had seen at paste-time. Leading to a direct **loss of your sources and inspirations**.
 
 **The Web Archiver plugin solves that problem by taking snapshots all the URL's you will paste in your Obsidian.**
 
