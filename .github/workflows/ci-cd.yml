@@ -1,18 +1,19 @@
-name: CI-CD
+name: Release Obsidian plugin
 
 on:
   push:
-    branches: [main]
+    tags:
+      - "*"
 
 env:
-  PLUGIN_NAME: obsidian-web-archiver
+  PLUGIN_NAME: obsidian-web-arciver
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
-
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
