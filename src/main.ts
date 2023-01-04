@@ -5,7 +5,6 @@ TODO:
 - Submit the plugins to the Obsidian's plugins list
 - Find an alternative to crypto in UUID else it will not work in mobile versions, see: https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md#nodejs-and-electron-api
 */
-// test
 
 import { Plugin, Editor, Notice } from "obsidian";
 import { WebArchiverSettings, WebArchiverSettingsTab } from "./settings";
