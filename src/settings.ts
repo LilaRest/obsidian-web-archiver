@@ -130,7 +130,7 @@ export class WebArchiverSettingsTab extends PluginSettingTab {
         .setDesc("Defines the name of the archive file. If it doesn't exist it will be created automatically.")
         .addText((text) =>
           text
-            .setPlaceholder("WebArchiver")
+            .setPlaceholder('e.g. "WebArchiver", "web-arch", "warch", ...')
             .setValue(this.plugin.settings.get("archiveFileName"))
             .onChange(async (value) => {
               this.plugin.settings.set("archiveFileName",value);
